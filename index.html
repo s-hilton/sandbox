@@ -104,6 +104,7 @@ details.key summary{cursor:pointer;font:500 11px/1 var(--mono);letter-spacing:.0
 .group-label{font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 0}
 .group-label.tight{color:var(--tight)} .group-label.loose{color:var(--loose)}
 .group-body{display:flex;gap:24px;align-items:flex-start}
+.sheet-row.stack,.stack .group-body{flex-direction:column;gap:28px}
 .block-title{font-weight:500;font-size:12.5px;margin-bottom:6px;overflow-wrap:anywhere;max-width:100%}
 table.viz{border-collapse:collapse;font:12px var(--sans);table-layout:fixed}
 table.viz td,table.viz th{border:1px solid var(--grid);width:76px;min-width:76px;height:26px;padding:0;text-align:center;vertical-align:middle}
@@ -436,7 +437,7 @@ function renderResults(){
   const cols = files.reduce((a,f) => a + f.columns.length, 0);
   let body;
   if (tab.id === "all"){
-    body = `<div class="sheet-row">${groupsOf(tab).map(g => `
+    body = `<div class="sheet-row stack">${groupsOf(tab).map(g => `
       <div class="group"><div class="group-label ${g.cat}">${g.cat} · ${g.files.length}</div>
         <div class="group-body">${g.files.map(f => `<div><div class="block-title">${esc(f.name)}</div>${tableHTML(f)}</div>`).join("")}</div>
       </div>`).join("")}</div>`;
@@ -445,7 +446,7 @@ function renderResults(){
   el.innerHTML = `
     <div class="res-head">
       <div>
-        <div class="eyebrow">${tab.id === "all" ? "Side by side, tight first" : `${f0.category} workflow`}</div>
+        <div class="eyebrow">${tab.id === "all" ? "Stacked, tight first" : `${f0.category} workflow`}</div>
         <h2>${esc(tab.title)}</h2>
         <div class="stats">
           ${tab.id === "all" ? `<span><b>${files.filter(f=>f.category==="tight").length}</b> tight</span><span><b>${files.filter(f=>f.category==="loose").length}</b> loose</span>` : ""}
@@ -503,17 +504,19 @@ function tabCSV(tab){
   let grid;
   if (tab.id !== "all") grid = blockMatrix(tab.files[0], false);
   else {
-    const parts = [];
+    // Workflows stacked top to bottom: tight group first, then loose
+    const w = Math.max(1, ...tab.files.map(f => f.columns.length));
+    const pad = r => { r = r.slice(); while (r.length < w) r.push(""); return r; };
+    const blank = () => Array(w).fill("");
+    grid = [];
     groupsOf(tab).forEach((g, gi) => {
+      if (gi) grid.push(blank(), blank());
+      grid.push(pad([g.cat.toUpperCase()]));
       g.files.forEach((f, fi) => {
-        const m = blockMatrix(f, true);
-        m.unshift(m[0].map((_, i) => (fi === 0 && i === 0) ? g.cat.toUpperCase() : ""));
-        if (parts.length) parts.push({gap: gi > 0 && fi === 0 ? 2 : 1});
-        parts.push({m});
+        if (fi) grid.push(blank());
+        blockMatrix(f, true).forEach(r => grid.push(pad(r)));
       });
     });
-    const height = Math.max(...parts.filter(p => p.m).map(p => p.m.length));
-    grid = Array.from({length: height}, (_, r) => parts.flatMap(p => p.gap ? Array(p.gap).fill("") : (p.m[r] || p.m[0].map(() => ""))));
   }
   const legend = legendOf(tab.files);
   const lines = grid.map(r => r.map(csvCell).join(","));
@@ -530,30 +533,31 @@ function tabPNG(tab){
   const legend = legendOf(tab.files);
   const fontSans = '"IBM Plex Sans", system-ui, sans-serif', fontMono = '"IBM Plex Mono", ui-monospace, monospace';
   // Layout
-  let x = P.pad, maxH = 0; const placed = [];
+  // Workflows stacked top to bottom: tight group first, then loose
+  const placed = [];
   const headTop = P.pad + 30;
-  const top = headTop + (multi ? P.group + P.title : 0);
-  const anyTight = tab.files.some(f => f.category === "tight");
+  let y = multi ? headTop : headTop - 4;
+  const maxW = Math.max(P.col, ...tab.files.map(f => measureBlock(f).w));
   groups.forEach((g, gi) => {
-    if (gi) x += P.gapGroup - P.gapBlock;
-    const gx = x;
+    if (gi) y += P.gapGroup - P.gapBlock;
+    if (multi){ g.y = y; y += P.group; }
     g.files.forEach(f => {
       const m = measureBlock(f);
-      const yOff = anyTight && f.category !== "tight" ? P.step : 0; // align header rows
-      placed.push({f, x, y: top + yOff, m});
-      maxH = Math.max(maxH, yOff + m.h);
-      x += m.w + P.gapBlock;
+      let ty = null;
+      if (multi){ ty = y + P.title / 2 - 2; y += P.title; }
+      placed.push({f, x: P.pad, y, m, ty});
+      y += m.h + P.gapBlock;
     });
-    g.x0 = gx; g.x1 = x - P.gapBlock;
   });
-  const gridW = x - P.gapBlock + P.pad;
+  const gridEnd = y - P.gapBlock;
+  const gridW = P.pad + maxW + P.pad;
   // Legend layout
   const ctxM = document.createElement("canvas").getContext("2d");
   ctxM.font = `12px ${fontSans}`;
   const itemW = Math.max(...legend.map(l => ctxM.measureText(`${l.name}  ${l.hex}`).width), 120) + 30;
   const W = Math.max(gridW, 520);
   const perRow = Math.max(1, Math.floor((W - 2*P.pad) / itemW));
-  const legendTop = top + maxH + 28;
+  const legendTop = gridEnd + 28;
   const H = legendTop + 22 + Math.ceil(legend.length / perRow) * 20 + P.pad;
 
   const scale = 2, cv = document.createElement("canvas");
@@ -562,7 +566,7 @@ function tabPNG(tab){
   c.fillStyle = "#ffffff"; c.fillRect(0, 0, W, H);
   c.textBaseline = "middle";
   const heading = multi ? "All workflows" : tab.title;
-  const sub = multi ? `${tab.files.length} workflows · tight first, then loose` : `${tab.files[0].category.toUpperCase()} WORKFLOW`;
+  const sub = multi ? `${tab.files.length} workflows · stacked, tight first` : `${tab.files[0].category.toUpperCase()} WORKFLOW`;
   c.fillStyle = "#1c232b"; c.font = `600 16px ${fontSans}`; c.fillText(heading, P.pad, P.pad + 8);
   const tw = c.measureText(heading).width;
   c.fillStyle = "#5b6672"; c.font = `11px ${fontMono}`; c.fillText(sub, P.pad + tw + 12, P.pad + 9);
@@ -570,13 +574,13 @@ function tabPNG(tab){
   if (multi){
     groups.forEach(g => {
       c.fillStyle = g.cat === "tight" ? "#6b3fa0" : "#1e7a6c"; c.font = `500 11px ${fontMono}`;
-      c.fillText(`${g.cat.toUpperCase()} · ${g.files.length}`, g.x0, headTop + 8);
-      c.fillRect(g.x0, headTop + 17, g.x1 - g.x0, 1.5);
+      c.fillText(`${g.cat.toUpperCase()} · ${g.files.length}`, P.pad, g.y + 6);
+      c.fillRect(P.pad, g.y + 14, maxW, 1.5);
     });
   }
   const KIND = {human: "#e0a15a", ai: "#5a8fe0", handoff: "#9aa5b1"};
-  placed.forEach(({f, x: bx, y: by}) => {
-    if (multi){ c.fillStyle = "#1c232b"; c.font = `500 12px ${fontSans}`; c.fillText(fit(c, f.name, Math.max(f.columns.length,1)*P.col), bx, top - P.title/2); }
+  placed.forEach(({f, x: bx, y: by, ty}) => {
+    if (multi){ c.fillStyle = "#1c232b"; c.font = `500 12px ${fontSans}`; c.fillText(fit(c, f.name, maxW), bx, ty); }
     let y = by;
     if (f.category === "tight"){
       f.steps.forEach(s => {

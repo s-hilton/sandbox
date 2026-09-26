@@ -3,7 +3,7 @@
 A single-page dashboard (`index.html`) that turns workflow transcript CSVs into color-coded handoff maps.
 
 - **Left panel:** upload one or more `.csv` (or `.xlsx`) transcripts, review parse notes, and download results.
-- **Right panel:** one tab per uploaded workflow, plus an **All workflows** tab (tight workflows first, then loose) once two or more are loaded.
+- **Right panel:** one tab per uploaded workflow, plus an **All workflows** tab that stacks every workflow top to bottom (tight first, then loose) once two or more are loaded.
 
 ## Input format
 
