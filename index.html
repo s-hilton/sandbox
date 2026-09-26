@@ -114,6 +114,14 @@ table.viz td.stepcell{border:0;height:30px;padding:0 0 4px}
 .step span.lbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .step i{font:10px var(--mono);font-style:normal;color:var(--muted)}
 .sq{display:block;width:18px;height:18px;margin:auto;border-radius:2px;border:1px solid rgba(0,0,0,.14)}
+table.viz td.hit{cursor:default}
+table.viz td.hit:hover,table.viz td.hit.on{background:var(--accent-soft)}
+table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-shadow:0 0 0 2px var(--panel),0 0 0 3.5px var(--ink)}
+.sq{transition:transform .1s}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--panel);border-radius:6px;padding:8px 10px;max-width:280px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:12.5px;line-height:1.35}
+.tip-top{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px}
+.tip-top .sw{border-color:rgba(255,255,255,.35)}
+.tip-meta{margin-top:4px;font:11px/1.5 var(--mono);opacity:.8}
 .sq.unknown{background:repeating-linear-gradient(45deg,#fff 0 3px,#bbb 3px 5px)!important}
 
 .legend{display:flex;flex-wrap:wrap;gap:6px 16px}
@@ -197,6 +205,8 @@ table.viz td.stepcell{border:0;height:30px;padding:0 0 4px}
     <div class="results" id="results"></div>
   </main>
 </div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
 
 <script>
 const EXAMPLE_CSV = "Tight,Task Type,Handoff Type,Agent\nStep 1: Propose,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Cross-Checking Against AI Reasoning,,Human\n,Pause,,Human\n,Drafting Prompt,,Human\n,,Specific Request,\n,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Drafting Prompt,,Human\n,Cross-Checking Against AI Reasoning,,\n,Cross-Checking Credit Load,,\n,Pause,,Human\n,Drafting Prompt,,Human\n,,General Request,\n,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Reviewing AI Reasoning,,Human\n,Approving,,Human\n,,Direction to Proceed,\nStep 2: Offerings,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Approving,,Human\n,,Direction to Proceed,\nStep 3: Schedule,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Reviewing Proposed Calendar,,Human\n,Approving,,Human\n,,Direction to Proceed,\nStep 4: Prereqs,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Approving,,Human\n,,Direction to Proceed,\nStep 5: Submit,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Submitting Final Plan,,Human\n,,,\n";
@@ -405,7 +415,9 @@ function tableHTML(f){
   }
   h += `<tr>${f.columns.map(c => `<th class="${c.kind}" scope="col">${c.label}</th>`).join("")}</tr>`;
   for (let r = 0; r < f.rowsMax; r++){
-    h += `<tr>${f.columns.map(c => { const x = c.cells[r]; return x ? `<td title="${esc(x.name)} · ${x.hex}"><span class="sq ${x.known ? "" : "unknown"}" style="background:${x.hex}"></span></td>` : `<td></td>`; }).join("")}</tr>`;
+    h += `<tr>${f.columns.map((c, ci) => { const x = c.cells[r]; if (!x) return `<td></td>`;
+      const st = f.steps.find(s => ci >= s.start && ci <= s.end);
+      return `<td class="hit" tabindex="0" aria-label="${esc(x.name)}, ${c.label}" data-name="${esc(x.name)}" data-hex="${x.hex}" data-known="${x.known}" data-kind="${c.kind}" data-col="${c.label}" data-pos="${r + 1} of ${c.cells.length}" data-step="${st ? esc(st.label) : ""}"><span class="sq ${x.known ? "" : "unknown"}" style="background:${x.hex}"></span></td>`; }).join("")}</tr>`;
   }
   return h + `</tbody></table>`;
 }
@@ -451,7 +463,7 @@ function renderResults(){
     </div>
     <div class="sheet-wrap">${body}</div>
     <div><h3 class="eyebrow" style="margin:0 0 8px">Legend</h3>${legendHTML(legendOf(files))}</div>
-    <p class="hint">Hover a square to see its task or handoff type.</p>`;
+    <p class="hint">Hover over a square, or tap it on a touch screen, to see its task or handoff type.</p>`;
 }
 
 function renderDownloadLabels(){
@@ -691,6 +703,32 @@ async function downloadZip(){
     setStatus(r === "saved" ? "Saved handoff-maps.zip." : "Skipped the zip file.", r === "saved" ? "ok" : "");
   } catch(e){ setStatus(explain(e), "bad"); }
 }
+
+/* ---------- Hover tooltip ---------- */
+(function(){
+  const tip = $("tip"); let cur = null;
+  const KIND = {human: "Human task", ai: "AI task", handoff: "Handoff"};
+  function show(td){
+    if (cur && cur !== td) cur.classList.remove("on");
+    cur = td; td.classList.add("on");
+    const d = td.dataset;
+    tip.innerHTML = `<div class="tip-top"><span class="sw ${d.known === "true" ? "" : "sq unknown"}" style="background:${d.hex};margin:0"></span>${esc(d.name)}</div>
+      <div class="tip-meta">${KIND[d.kind]} · ${esc(d.col)} · item ${d.pos}${d.step ? `<br>${esc(d.step)}` : ""}<br>${d.hex}${d.known === "true" ? "" : " · no color set"}</div>`;
+    tip.hidden = false;
+    const r = td.getBoundingClientRect(), t = tip.getBoundingClientRect();
+    let x = r.left + r.width / 2 - t.width / 2, y = r.top - t.height - 8;
+    if (y < 8) y = r.bottom + 8;
+    x = Math.max(8, Math.min(x, window.innerWidth - t.width - 8));
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hide(){ tip.hidden = true; if (cur) cur.classList.remove("on"); cur = null; }
+  document.addEventListener("mouseover", e => { const td = e.target.closest("td.hit"); td ? show(td) : (cur && hide()); });
+  document.addEventListener("focusin", e => { const td = e.target.closest("td.hit"); td ? show(td) : (cur && hide()); });
+  document.addEventListener("click", e => { const td = e.target.closest("td.hit"); if (td) show(td); else if (cur) hide(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") hide(); });
+  window.addEventListener("scroll", hide, true);
+  window.addEventListener("resize", hide);
+})();
 
 /* ---------- Events ---------- */
 function loadExample(){ addWorkflow(parseCSV(EXAMPLE_CSV), "Example transcript.csv"); render(); }
