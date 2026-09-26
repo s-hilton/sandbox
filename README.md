@@ -1,4 +1,4 @@
-# Handoff Map
+# Workflow Map
 
 A single-page dashboard (`index.html`) that turns workflow transcript CSVs into color-coded handoff maps.
 
