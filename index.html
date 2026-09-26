@@ -1,0 +1,741 @@
+<title>Handoff Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#1c232b; --muted:#5b6672; --line:#dfe3e8; --line-strong:#c3cad2;
+  --accent:#1f5f8b; --accent-ink:#ffffff; --accent-soft:#e3eef6;
+  --sheet:#ffffff; --grid:#d9dde2; --warn:#9a5b00; --warn-soft:#fff3dc; --ok:#1e7a4c;
+  --tight:#6b3fa0; --tight-soft:#efe7f8; --loose:#1e7a6c; --loose-soft:#e2f4f1;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#12161b; --panel:#1a2027; --ink:#e4e8ec; --muted:#9aa5b1; --line:#2b333c; --line-strong:#3b4652;
+    --accent:#6fb0de; --accent-ink:#0d1a24; --accent-soft:#1c3040;
+    --sheet:#1f262e; --grid:#353f4a; --warn:#f0b65a; --warn-soft:#33280f; --ok:#5cc792;
+    --tight:#c2a0ec; --tight-soft:#2d2240; --loose:#6dd3c2; --loose-soft:#17332f;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#12161b; --panel:#1a2027; --ink:#e4e8ec; --muted:#9aa5b1; --line:#2b333c; --line-strong:#3b4652;
+  --accent:#6fb0de; --accent-ink:#0d1a24; --accent-soft:#1c3040;
+  --sheet:#1f262e; --grid:#353f4a; --warn:#f0b65a; --warn-soft:#33280f; --ok:#5cc792;
+  --tight:#c2a0ec; --tight-soft:#2d2240; --loose:#6dd3c2; --loose-soft:#17332f;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-inline:16px;padding-block:16px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{display:grid;grid-template-columns:minmax(280px,var(--left,50%)) 8px minmax(0,1fr);gap:0;height:100%;min-height:560px}
+.pane{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.splitter{cursor:col-resize;display:flex;align-items:center;justify-content:center}
+.splitter::after{content:"";width:2px;height:40px;border-radius:2px;background:var(--line-strong)}
+.splitter:hover::after{background:var(--accent)}
+
+.pane-head{padding:16px 20px 12px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pane-head h1,.pane-head h2{margin:0;font-size:17px;font-weight:600;text-wrap:balance}
+.eyebrow{font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.inputs{padding:16px 20px 24px;overflow:auto;display:flex;flex-direction:column;gap:22px}
+section h3{margin:0 0 8px;font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.drop{border:1.5px dashed var(--line-strong);border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:var(--bg);transition:border-color .15s,background .15s}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop p{margin:0;color:var(--muted);max-width:52ch}
+.btn{border:1px solid var(--line-strong);background:var(--panel);border-radius:6px;padding:6px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.small{padding:3px 8px;font-size:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.files{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.file{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
+.file.active{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.file-name{font-weight:500;overflow-wrap:anywhere;cursor:pointer}
+.file-meta{grid-column:1/-1;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{font:500 10.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:4px}
+.chip.tight{color:var(--tight);background:var(--tight-soft)}
+.chip.loose{color:var(--loose);background:var(--loose-soft)}
+.warns{grid-column:1/-1;margin:4px 0 0;padding:6px 10px 6px 24px;background:var(--warn-soft);color:var(--warn);border-radius:6px;font-size:12px}
+.empty-note{color:var(--muted);margin:0}
+.x{border:0;background:none;cursor:pointer;color:var(--muted);padding:2px 6px;border-radius:4px;font-size:15px;line-height:1}
+.x:hover{color:var(--ink);background:var(--bg)}
+
+.dl-grid{display:grid;gap:10px}
+.dl-card{border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.dl-card strong{font-weight:500}
+.dl-card p{margin:0;color:var(--muted);font-size:12.5px}
+.status{font-size:12.5px;color:var(--muted);min-height:1.2em;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--warn)}
+
+details.key summary{cursor:pointer;font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:4px 0}
+.key-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 16px;margin-top:10px}
+.key-item{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.key-item code{font:11px var(--mono);color:var(--muted);margin-left:auto}
+.key-group{grid-column:1/-1;font:500 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+.sw{width:14px;height:14px;border-radius:2px;flex:none;border:1px solid rgba(0,0,0,.12)}
+
+.tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:thin}
+.tab{border:1px solid transparent;border-bottom:0;background:none;padding:8px 10px 8px 12px;border-radius:7px 7px 0 0;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--muted);white-space:nowrap;margin-bottom:-1px}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--panel);border-color:var(--line);color:var(--ink);font-weight:500;box-shadow:0 1px 0 var(--panel)}
+.tab .dot{width:7px;height:7px;border-radius:50%}
+.tab .dot.tight{background:var(--tight)} .tab .dot.loose{background:var(--loose)} .tab .dot.all{background:var(--accent)}
+.tab .x{font-size:13px;padding:0 4px}
+
+.results{flex:1;overflow:auto;padding:18px 20px 28px;display:flex;flex-direction:column;gap:18px}
+.res-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.res-head h2{margin:0 0 4px;font-size:18px;font-weight:600;overflow-wrap:anywhere}
+.stats{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.stats b{color:var(--ink);font-weight:600}
+
+.sheet-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--sheet);padding:14px}
+.sheet-row{display:flex;gap:40px;align-items:flex-start;width:max-content}
+.group{display:flex;flex-direction:column;gap:8px}
+.group-label{font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 0}
+.group-label.tight{color:var(--tight)} .group-label.loose{color:var(--loose)}
+.group-body{display:flex;gap:24px;align-items:flex-start}
+.block-title{font-weight:500;font-size:12.5px;margin-bottom:6px;overflow-wrap:anywhere;max-width:100%}
+table.viz{border-collapse:collapse;font:12px var(--sans);table-layout:fixed}
+table.viz td,table.viz th{border:1px solid var(--grid);width:76px;min-width:76px;height:26px;padding:0;text-align:center;vertical-align:middle}
+table.viz th{font:500 11px var(--mono);color:var(--ink);background:var(--bg);white-space:nowrap}
+table.viz th.human{box-shadow:inset 0 -3px 0 #e0a15a} table.viz th.ai{box-shadow:inset 0 -3px 0 #5a8fe0} table.viz th.handoff{box-shadow:inset 0 -3px 0 #9aa5b1}
+table.viz td.stepcell{border:0;height:30px;padding:0 0 4px}
+.step{height:26px;margin:0 3px;border:1.5px solid var(--ink);border-bottom:0;display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 4px;font:500 11px var(--sans);overflow:hidden}
+.step span.lbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.step i{font:10px var(--mono);font-style:normal;color:var(--muted)}
+.sq{display:block;width:18px;height:18px;margin:auto;border-radius:2px;border:1px solid rgba(0,0,0,.14)}
+.sq.unknown{background:repeating-linear-gradient(45deg,#fff 0 3px,#bbb 3px 5px)!important}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px}
+.legend .key-item code{margin-left:0}
+.hint{color:var(--muted);font-size:12.5px;margin:0}
+
+@media (max-width: 820px){
+  body{height:auto}
+  .app{grid-template-columns:1fr;height:auto;gap:16px}
+  .splitter{display:none}
+  .pane{overflow:visible}
+  .results,.inputs{overflow:visible}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="app" id="app">
+  <aside class="pane" aria-label="Inputs">
+    <div class="pane-head">
+      <h1>Handoff Map</h1>
+      <span class="eyebrow">Inputs</span>
+    </div>
+    <div class="inputs">
+      <section>
+        <h3>Upload transcripts</h3>
+        <label class="drop" id="drop" for="file-input">
+          <strong>Drop CSV files here</strong>
+          <p>The first cell names the workflow category (Tight or Loose), followed by Task Type, Handoff Type and Agent columns. Tight workflows list step labels down the first column. Excel files (.xlsx) also work.</p>
+          <span class="row" style="margin-top:6px">
+            <span class="btn primary" role="button">Choose files</span>
+            <span class="hint">Each file opens in its own tab.</span>
+          </span>
+        </label>
+        <input id="file-input" type="file" accept=".csv,.xlsx,.xls,text/csv" multiple hidden>
+      </section>
+
+      <section>
+        <div class="row" style="justify-content:space-between;margin-bottom:8px">
+          <h3 style="margin:0">Loaded workflows</h3>
+          <button class="btn small" id="clear-all" type="button">Remove all</button>
+        </div>
+        <ul class="files" id="file-list"></ul>
+      </section>
+
+      <section>
+        <h3>Download</h3>
+        <div class="dl-grid">
+          <div class="dl-card">
+            <strong id="dl-current-title">Current tab</strong>
+            <p>The CSV holds one column per group, with each square stored as its hex color code. The PNG is the picture shown on the right.</p>
+            <div class="row">
+              <button class="btn" id="dl-csv" type="button">Download CSV</button>
+              <button class="btn" id="dl-png" type="button">Download PNG</button>
+            </div>
+          </div>
+          <div class="dl-card">
+            <strong>Every tab</strong>
+            <p id="dl-all-desc">Saves a separate CSV and PNG for each tab.</p>
+            <div class="row">
+              <button class="btn primary" id="dl-all" type="button">Download all files</button>
+              <button class="btn" id="dl-zip" type="button">Download as .zip</button>
+            </div>
+          </div>
+          <p class="status" id="dl-status" role="status"></p>
+        </div>
+      </section>
+
+      <section>
+        <details class="key" id="color-key">
+          <summary>Color key · 26 task and handoff types</summary>
+          <div class="key-list" id="key-list"></div>
+        </details>
+      </section>
+    </div>
+  </aside>
+
+  <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize panels" tabindex="0"></div>
+
+  <main class="pane" aria-label="Results">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="results" id="results"></div>
+  </main>
+</div>
+
+<script>
+const EXAMPLE_CSV = "Tight,Task Type,Handoff Type,Agent\nStep 1: Propose,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Cross-Checking Against AI Reasoning,,Human\n,Pause,,Human\n,Drafting Prompt,,Human\n,,Specific Request,\n,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Drafting Prompt,,Human\n,Cross-Checking Against AI Reasoning,,\n,Cross-Checking Credit Load,,\n,Pause,,Human\n,Drafting Prompt,,Human\n,,General Request,\n,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Reviewing AI Reasoning,,Human\n,Approving,,Human\n,,Direction to Proceed,\nStep 2: Offerings,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Approving,,Human\n,,Direction to Proceed,\nStep 3: Schedule,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Reviewing Proposed Calendar,,Human\n,Approving,,Human\n,,Direction to Proceed,\nStep 4: Prereqs,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Approving,,Human\n,,Direction to Proceed,\nStep 5: Submit,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Submitting Final Plan,,Human\n,,,\n";
+
+/* ---------- Color key ---------- */
+const TYPE_GROUPS = [
+  ["Reviewing", [["Reviewing AI Reasoning","FFC5B8"],["Reviewing Proposed Courses","FF7A5C"],["Reviewing Proposed Calendar","FF542E"],["Reviewing Plan Revisions","FF2F00"],["Reviewing AI Self-Check Results","D12600"],["Assess Available Resources","A31E00"]]],
+  ["Consulting", [["Consulting Degree Progress Record","FFFDB8"],["Consulting Course Sequence Guide","FFFA5C"]]],
+  ["AI work", [["Black Box","FFB8FB"]]],
+  ["Cross-checking", [["Cross-Checking Prerequisites","D8FFB8"],["Cross-Checking Course Availability","A5FF5C"],["Cross-Checking Credit Load","8CFF2E"],["Cross-Checking Against AI Reasoning","73FF00"],["Cross-Checking Against Degree Progress","5ED100"],["Cross-Checking Against Recommended Sequence","357500"]]],
+  ["Other human tasks", [["Pause","C4C4C4"],["Drafting Prompt","525252"],["Approving","FFC28A"],["Submitting Final Plan","FF7B00"],["Orienting to Next Step","00FFEA"]]],
+  ["Handoffs", [["General Request","9FABEA"],["Specific Request","7486E0"],["Direction to Check","546AD9"],["Direction to Proceed","2E49D1"],["Intermediate Product","263CAB"],["Complete Product","152260"]]],
+];
+const norm = s => String(s ?? "").trim().replace(/\s+/g," ").toLowerCase().replace(/[‐-―]/g,"-");
+const COLORS = new Map();
+const CANON = new Map();
+TYPE_GROUPS.forEach(([,items]) => items.forEach(([n,h]) => { COLORS.set(norm(n), "#"+h); CANON.set(norm(n), n); }));
+const UNKNOWN_HEX = "#FFFFFF";
+
+/* ---------- Parsing ---------- */
+function parseCSV(text){
+  text = text.replace(/^﻿/,"");
+  const first = text.split(/\r?\n/)[0] || "";
+  const counts = {",":0,";":0,"\t":0};
+  for (const ch of first) if (ch in counts) counts[ch]++;
+  const d = Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0] || ",";
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i=0;i<text.length;i++){
+    const c = text[i];
+    if (q){
+      if (c === '"'){ if (text[i+1] === '"'){ cell += '"'; i++; } else q = false; }
+      else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === d){ row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r"){
+      if (c === "\r" && text[i+1] === "\n") i++;
+      row.push(cell); rows.push(row); row = []; cell = "";
+    } else cell += c;
+  }
+  if (cell !== "" || row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
+
+function buildWorkflow(rows, name){
+  const warnings = [];
+  rows = rows.map(r => r.map(v => v == null ? "" : String(v).trim()));
+  const header = rows[0] || [];
+  const catRaw = norm(header[0]);
+  const findCol = (re, fallback) => { const i = header.findIndex(h => re.test(norm(h))); return i >= 0 ? i : fallback; };
+  const taskCol = findCol(/task/, 1), handCol = findCol(/hand/, 2), agentCol = findCol(/agent/, 3);
+  if (!header.some(h => /task/.test(norm(h)))) warnings.push("No “Task Type” header found, so columns B, C and D were read as Task Type, Handoff Type and Agent.");
+
+  const hasStepLabels = rows.slice(1).some(r => (r[0]||"") !== "");
+  let category;
+  if (catRaw.startsWith("tight")) category = "tight";
+  else if (catRaw.startsWith("loose")) category = "loose";
+  else { category = hasStepLabels ? "tight" : "loose"; warnings.push(`The first cell says “${header[0]||"(blank)"}”. Treated as ${category} because the file ${hasStepLabels ? "has" : "has no"} step labels.`); }
+
+  // Flatten rows into a sequence of entries
+  const entries = [];
+  let stepIdx = -1; const stepLabels = [];
+  let lastAgent = null, inherited = 0;
+  const unknown = new Set();
+  rows.slice(1).forEach(r => {
+    if (category === "tight" && r[0]){ stepLabels.push(r[0]); stepIdx = stepLabels.length - 1; }
+    const task = r[taskCol] || "", hand = r[handCol] || "", agentRaw = norm(r[agentCol]);
+    if (task){
+      let kind = null;
+      if (/\bai\b|^ai|artificial/.test(agentRaw)) kind = "ai";
+      else if (/human|person|user/.test(agentRaw)) kind = "human";
+      else if (lastAgent){ kind = lastAgent; inherited++; }
+      else { kind = "human"; inherited++; }
+      lastAgent = kind;
+      entries.push({kind, name: task, step: stepIdx});
+    }
+    if (hand) entries.push({kind: "handoff", name: hand, step: stepIdx});
+  });
+  if (inherited) warnings.push(`${inherited} task ${inherited===1?"row has":"rows have"} no agent, so ${inherited===1?"it was":"they were"} kept with the agent of the task above.`);
+  if (category === "tight" && !stepLabels.length) warnings.push("Marked Tight but no step labels were found in the first column.");
+  if (category === "tight" && entries.some(e => e.step < 0)) warnings.push("Some rows come before the first step label and sit outside any step.");
+
+  // Group consecutive entries of the same kind within the same step
+  const counters = {human:0, ai:0, handoff:0};
+  const LABEL = {human:"Human", ai:"AI", handoff:"Handoff"};
+  const columns = [];
+  entries.forEach(e => {
+    const last = columns[columns.length-1];
+    if (!last || last.kind !== e.kind || last.step !== e.step){
+      counters[e.kind]++;
+      columns.push({kind: e.kind, step: e.step, label: `${LABEL[e.kind]} #${counters[e.kind]}`, cells: []});
+    }
+    const key = norm(e.name);
+    const hex = COLORS.get(key);
+    if (!hex) unknown.add(e.name);
+    columns[columns.length-1].cells.push({name: CANON.get(key) || e.name, hex: hex || UNKNOWN_HEX, known: !!hex});
+  });
+  if (unknown.size) warnings.push(`No color is set for: ${[...unknown].join(", ")}. These show as striped squares and export as ${UNKNOWN_HEX}.`);
+
+  const steps = [];
+  if (category === "tight"){
+    stepLabels.forEach((label, i) => {
+      const idx = columns.map((c,j) => c.step === i ? j : -1).filter(j => j >= 0);
+      if (idx.length) steps.push({label, start: idx[0], end: idx[idx.length-1]});
+      else warnings.push(`“${label}” has no rows under it.`);
+    });
+  }
+  return {id: "w" + Math.random().toString(36).slice(2,9), name, category, columns, steps, warnings, counters,
+          rowsMax: Math.max(0, ...columns.map(c => c.cells.length))};
+}
+
+/* ---------- State ---------- */
+const state = {files: [], active: null};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const baseName = n => n.replace(/\.(csv|xlsx|xls)$/i, "");
+const slug = s => s.replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"-") || "workflow";
+
+function uniqueName(n){
+  let name = n, i = 2;
+  while (state.files.some(f => f.name === name)) name = `${n} (${i++})`;
+  return name;
+}
+function addWorkflow(rows, fileName){
+  const wf = buildWorkflow(rows, uniqueName(baseName(fileName)));
+  state.files.push(wf);
+  state.active = wf.id;
+}
+async function handleFiles(list){
+  const errors = [];
+  for (const file of list){
+    try{
+      let rows;
+      if (/\.xlsx?$/i.test(file.name)){
+        if (!window.XLSX) throw new Error("the Excel reader did not load");
+        const wb = XLSX.read(await file.arrayBuffer(), {type: "array"});
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header: 1, defval: "", raw: false});
+      } else rows = parseCSV(await file.text());
+      if (!rows.length || rows.every(r => r.every(v => !String(v).trim()))) throw new Error("the file is empty");
+      addWorkflow(rows, file.name);
+    } catch(err){ errors.push(`${file.name}: ${err.message}`); }
+  }
+  render();
+  if (errors.length) setStatus("Could not read " + errors.join("; ") + ".", "bad");
+}
+
+/* ---------- Tabs model ---------- */
+function tabs(){
+  const t = state.files.map(f => ({id: f.id, title: f.name, kind: f.category, files: [f]}));
+  if (state.files.length > 1) t.push({id: "all", title: "All workflows", kind: "all", files: orderedFiles()});
+  return t;
+}
+function orderedFiles(){ return [...state.files.filter(f => f.category === "tight"), ...state.files.filter(f => f.category === "loose")]; }
+function currentTab(){ const t = tabs(); return t.find(x => x.id === state.active) || t[0] || null; }
+function groupsOf(tab){
+  return ["tight","loose"].map(cat => ({cat, files: tab.files.filter(f => f.category === cat)})).filter(g => g.files.length);
+}
+function legendOf(files){
+  const seen = new Map();
+  files.forEach(f => f.columns.forEach(c => c.cells.forEach(x => { if (!seen.has(x.name)) seen.set(x.name, x); })));
+  return [...seen.values()];
+}
+
+/* ---------- Rendering ---------- */
+function render(){
+  const t = tabs();
+  if (state.active && !t.some(x => x.id === state.active)) state.active = t.length ? t[0].id : null;
+  if (!state.active && t.length) state.active = t[0].id;
+  renderFileList(); renderTabs(t); renderResults(); renderDownloadLabels();
+}
+
+function renderFileList(){
+  const ul = $("file-list");
+  $("clear-all").hidden = !state.files.length;
+  if (!state.files.length){ ul.innerHTML = `<li class="empty-note">No workflows loaded yet. <button class="btn small" type="button" id="load-example">Load the example</button></li>`; $("load-example").onclick = loadExample; return; }
+  ul.innerHTML = state.files.map(f => `
+    <li class="file ${f.id === state.active ? "active" : ""}">
+      <span class="file-name" data-open="${f.id}" tabindex="0">${esc(f.name)}</span>
+      <button class="x" type="button" data-remove="${f.id}" aria-label="Remove ${esc(f.name)}">×</button>
+      <span class="file-meta"><span class="chip ${f.category}">${f.category}</span>
+        ${f.columns.length} columns · ${f.counters.human} human · ${f.counters.ai} AI · ${f.counters.handoff} handoff${f.category === "tight" ? ` · ${f.steps.length} steps` : ""}</span>
+      ${f.warnings.length ? `<ul class="warns">${f.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}
+    </li>`).join("");
+}
+
+function renderTabs(t){
+  const el = $("tabs");
+  if (!t.length){ el.innerHTML = `<button class="tab" role="tab" aria-selected="true">Results</button>`; return; }
+  el.innerHTML = t.map(x => `
+    <button class="tab" role="tab" type="button" data-tab="${x.id}" aria-selected="${x.id === state.active}">
+      <span class="dot ${x.kind}"></span>${esc(x.title)}${x.id === "all" ? ` <span class="eyebrow">${x.files.length}</span>` : ` <span class="x" data-remove="${x.id}" role="button" aria-label="Close ${esc(x.title)}">×</span>`}
+    </button>`).join("");
+}
+
+function tableHTML(f){
+  let h = `<table class="viz"><tbody>`;
+  if (f.category === "tight" && f.steps.length){
+    h += `<tr>`; let c = 0;
+    for (const s of f.steps){
+      if (s.start > c) h += `<td class="stepcell" colspan="${s.start - c}"></td>`;
+      const span = s.end - s.start + 1;
+      h += `<td class="stepcell" colspan="${span}" title="${esc(s.label)}: ${f.columns[s.start].label} to ${f.columns[s.end].label}"><div class="step"><i>▸</i><span class="lbl">${esc(s.label)}</span><i>◂</i></div></td>`;
+      c = s.end + 1;
+    }
+    if (c < f.columns.length) h += `<td class="stepcell" colspan="${f.columns.length - c}"></td>`;
+    h += `</tr>`;
+  }
+  h += `<tr>${f.columns.map(c => `<th class="${c.kind}" scope="col">${c.label}</th>`).join("")}</tr>`;
+  for (let r = 0; r < f.rowsMax; r++){
+    h += `<tr>${f.columns.map(c => { const x = c.cells[r]; return x ? `<td title="${esc(x.name)} · ${x.hex}"><span class="sq ${x.known ? "" : "unknown"}" style="background:${x.hex}"></span></td>` : `<td></td>`; }).join("")}</tr>`;
+  }
+  return h + `</tbody></table>`;
+}
+
+function legendHTML(items){
+  return `<div class="legend">${items.map(x => `<span class="key-item"><span class="sw ${x.known ? "" : "sq unknown"}" style="background:${x.hex};margin:0"></span>${esc(x.name)} <code>${x.hex}</code></span>`).join("")}</div>`;
+}
+
+function renderResults(){
+  const el = $("results");
+  const tab = currentTab();
+  if (!tab){
+    el.innerHTML = `<p class="hint">Upload a transcript CSV on the left to see its handoff map here.</p>`; return;
+  }
+  const files = tab.files;
+  const cols = files.reduce((a,f) => a + f.columns.length, 0);
+  let body;
+  if (tab.id === "all"){
+    body = `<div class="sheet-row">${groupsOf(tab).map(g => `
+      <div class="group"><div class="group-label ${g.cat}">${g.cat} · ${g.files.length}</div>
+        <div class="group-body">${g.files.map(f => `<div><div class="block-title">${esc(f.name)}</div>${tableHTML(f)}</div>`).join("")}</div>
+      </div>`).join("")}</div>`;
+  } else body = `<div class="sheet-row">${tableHTML(files[0])}</div>`;
+  const f0 = files[0];
+  el.innerHTML = `
+    <div class="res-head">
+      <div>
+        <div class="eyebrow">${tab.id === "all" ? "Side by side, tight first" : `${f0.category} workflow`}</div>
+        <h2>${esc(tab.title)}</h2>
+        <div class="stats">
+          ${tab.id === "all" ? `<span><b>${files.filter(f=>f.category==="tight").length}</b> tight</span><span><b>${files.filter(f=>f.category==="loose").length}</b> loose</span>` : ""}
+          <span><b>${cols}</b> columns</span>
+          <span><b>${files.reduce((a,f)=>a+f.counters.human,0)}</b> human</span>
+          <span><b>${files.reduce((a,f)=>a+f.counters.ai,0)}</b> AI</span>
+          <span><b>${files.reduce((a,f)=>a+f.counters.handoff,0)}</b> handoff</span>
+          ${tab.id !== "all" && f0.category === "tight" ? `<span><b>${f0.steps.length}</b> steps</span>` : ""}
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn small" type="button" data-dl="csv">CSV</button>
+        <button class="btn small" type="button" data-dl="png">PNG</button>
+      </div>
+    </div>
+    <div class="sheet-wrap">${body}</div>
+    <div><h3 class="eyebrow" style="margin:0 0 8px">Legend</h3>${legendHTML(legendOf(files))}</div>
+    <p class="hint">Hover a square to see its task or handoff type.</p>`;
+}
+
+function renderDownloadLabels(){
+  const tab = currentTab(), t = tabs();
+  $("dl-current-title").textContent = tab ? `Current tab · ${tab.title}` : "Current tab";
+  ["dl-csv","dl-png","dl-all","dl-zip"].forEach(id => $(id).disabled = !tab);
+  $("dl-all-desc").textContent = t.length ? `Saves ${t.length * 2} files: a separate CSV and PNG for each of the ${t.length} ${t.length === 1 ? "tab" : "tabs"}.` : "Saves a separate CSV and PNG for each tab.";
+}
+
+function renderKey(){
+  $("key-list").innerHTML = TYPE_GROUPS.map(([g, items]) => `<div class="key-group">${g}</div>` +
+    items.map(([n,h]) => `<span class="key-item"><span class="sw" style="background:#${h}"></span>${n}<code>#${h}</code></span>`).join("")).join("");
+}
+
+/* ---------- CSV export ---------- */
+const csvCell = v => { v = String(v ?? ""); return /[",\n\r]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v; };
+function stepRow(f){
+  const out = f.columns.map(() => "");
+  f.steps.forEach(s => {
+    if (s.start === s.end) out[s.start] = `START/END: ${s.label}`;
+    else { out[s.start] = `START: ${s.label}`; out[s.end] = `END: ${s.label}`; }
+  });
+  return out;
+}
+function blockMatrix(f, withTitle){
+  // Returns rows of equal width for one workflow
+  const w = Math.max(1, f.columns.length);
+  const pad = a => { while (a.length < w) a.push(""); return a; };
+  const rows = [];
+  if (withTitle) rows.push(pad([`${f.name} (${f.category})`]));
+  if (f.category === "tight" || withTitle) rows.push(pad(f.category === "tight" ? stepRow(f) : []));
+  rows.push(pad(f.columns.map(c => c.label)));
+  for (let r = 0; r < f.rowsMax; r++) rows.push(pad(f.columns.map(c => c.cells[r] ? c.cells[r].hex : "")));
+  return rows;
+}
+function tabCSV(tab){
+  let grid;
+  if (tab.id !== "all") grid = blockMatrix(tab.files[0], false);
+  else {
+    const parts = [];
+    groupsOf(tab).forEach((g, gi) => {
+      g.files.forEach((f, fi) => {
+        const m = blockMatrix(f, true);
+        m.unshift(m[0].map((_, i) => (fi === 0 && i === 0) ? g.cat.toUpperCase() : ""));
+        if (parts.length) parts.push({gap: gi > 0 && fi === 0 ? 2 : 1});
+        parts.push({m});
+      });
+    });
+    const height = Math.max(...parts.filter(p => p.m).map(p => p.m.length));
+    grid = Array.from({length: height}, (_, r) => parts.flatMap(p => p.gap ? Array(p.gap).fill("") : (p.m[r] || p.m[0].map(() => ""))));
+  }
+  const legend = legendOf(tab.files);
+  const lines = grid.map(r => r.map(csvCell).join(","));
+  lines.push("", "Legend,Hex", ...legend.map(x => `${csvCell(x.name)},${x.hex}`));
+  return lines.join("\r\n") + "\r\n";
+}
+
+/* ---------- PNG export ---------- */
+const P = {col: 76, row: 26, sq: 18, head: 28, step: 32, title: 22, group: 24, pad: 24, gapBlock: 28, gapGroup: 56};
+function measureBlock(f){ return {w: Math.max(1, f.columns.length) * P.col, h: (f.category === "tight" ? P.step : 0) + P.head + f.rowsMax * P.row}; }
+function tabPNG(tab){
+  const multi = tab.id === "all";
+  const groups = groupsOf(tab);
+  const legend = legendOf(tab.files);
+  const fontSans = '"IBM Plex Sans", system-ui, sans-serif', fontMono = '"IBM Plex Mono", ui-monospace, monospace';
+  // Layout
+  let x = P.pad, maxH = 0; const placed = [];
+  const headTop = P.pad + 30;
+  const top = headTop + (multi ? P.group + P.title : 0);
+  const anyTight = tab.files.some(f => f.category === "tight");
+  groups.forEach((g, gi) => {
+    if (gi) x += P.gapGroup - P.gapBlock;
+    const gx = x;
+    g.files.forEach(f => {
+      const m = measureBlock(f);
+      const yOff = anyTight && f.category !== "tight" ? P.step : 0; // align header rows
+      placed.push({f, x, y: top + yOff, m});
+      maxH = Math.max(maxH, yOff + m.h);
+      x += m.w + P.gapBlock;
+    });
+    g.x0 = gx; g.x1 = x - P.gapBlock;
+  });
+  const gridW = x - P.gapBlock + P.pad;
+  // Legend layout
+  const ctxM = document.createElement("canvas").getContext("2d");
+  ctxM.font = `12px ${fontSans}`;
+  const itemW = Math.max(...legend.map(l => ctxM.measureText(`${l.name}  ${l.hex}`).width), 120) + 30;
+  const W = Math.max(gridW, 520);
+  const perRow = Math.max(1, Math.floor((W - 2*P.pad) / itemW));
+  const legendTop = top + maxH + 28;
+  const H = legendTop + 22 + Math.ceil(legend.length / perRow) * 20 + P.pad;
+
+  const scale = 2, cv = document.createElement("canvas");
+  cv.width = W * scale; cv.height = H * scale;
+  const c = cv.getContext("2d"); c.scale(scale, scale);
+  c.fillStyle = "#ffffff"; c.fillRect(0, 0, W, H);
+  c.textBaseline = "middle";
+  const heading = multi ? "All workflows" : tab.title;
+  const sub = multi ? `${tab.files.length} workflows · tight first, then loose` : `${tab.files[0].category.toUpperCase()} WORKFLOW`;
+  c.fillStyle = "#1c232b"; c.font = `600 16px ${fontSans}`; c.fillText(heading, P.pad, P.pad + 8);
+  const tw = c.measureText(heading).width;
+  c.fillStyle = "#5b6672"; c.font = `11px ${fontMono}`; c.fillText(sub, P.pad + tw + 12, P.pad + 9);
+
+  if (multi){
+    groups.forEach(g => {
+      c.fillStyle = g.cat === "tight" ? "#6b3fa0" : "#1e7a6c"; c.font = `500 11px ${fontMono}`;
+      c.fillText(`${g.cat.toUpperCase()} · ${g.files.length}`, g.x0, headTop + 8);
+      c.fillRect(g.x0, headTop + 17, g.x1 - g.x0, 1.5);
+    });
+  }
+  const KIND = {human: "#e0a15a", ai: "#5a8fe0", handoff: "#9aa5b1"};
+  placed.forEach(({f, x: bx, y: by}) => {
+    if (multi){ c.fillStyle = "#1c232b"; c.font = `500 12px ${fontSans}`; c.fillText(fit(c, f.name, Math.max(f.columns.length,1)*P.col), bx, top - P.title/2); }
+    let y = by;
+    if (f.category === "tight"){
+      f.steps.forEach(s => {
+        const sx = bx + s.start * P.col + 3, sw = (s.end - s.start + 1) * P.col - 6;
+        c.strokeStyle = "#1c232b"; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(sx, y + P.step - 2); c.lineTo(sx, y + 3); c.lineTo(sx + sw, y + 3); c.lineTo(sx + sw, y + P.step - 2); c.stroke();
+        c.fillStyle = "#5b6672"; c.font = `10px ${fontMono}`;
+        c.textAlign = "left"; c.fillText("▸", sx + 4, y + 16);
+        c.textAlign = "right"; c.fillText("◂", sx + sw - 4, y + 16);
+        c.textAlign = "center"; c.fillStyle = "#1c232b"; c.font = `500 11px ${fontSans}`;
+        c.fillText(fit(c, s.label, sw - 28), sx + sw/2, y + 16);
+        c.textAlign = "left";
+      });
+      y += P.step;
+    }
+    // header
+    f.columns.forEach((col, i) => {
+      const cx = bx + i * P.col;
+      c.fillStyle = "#f3f5f7"; c.fillRect(cx, y, P.col, P.head);
+      c.fillStyle = KIND[col.kind]; c.fillRect(cx, y + P.head - 3, P.col, 3);
+      c.fillStyle = "#1c232b"; c.font = `500 11px ${fontMono}`; c.textAlign = "center";
+      c.fillText(col.label, cx + P.col/2, y + P.head/2 - 1); c.textAlign = "left";
+    });
+    // cells
+    for (let r = 0; r < f.rowsMax; r++){
+      f.columns.forEach((col, i) => {
+        const cell = col.cells[r]; if (!cell) return;
+        const cx = bx + i * P.col + (P.col - P.sq)/2, cy = y + P.head + r * P.row + (P.row - P.sq)/2;
+        swatch(c, cx, cy, P.sq, cell);
+      });
+    }
+    // grid lines
+    c.strokeStyle = "#d9dde2"; c.lineWidth = 1;
+    const rows = f.rowsMax, w = f.columns.length * P.col, h = P.head + rows * P.row;
+    for (let i = 0; i <= f.columns.length; i++){ c.beginPath(); c.moveTo(bx + i*P.col + .5, y); c.lineTo(bx + i*P.col + .5, y + h); c.stroke(); }
+    for (let r = 0; r <= rows + 1; r++){ const ly = r === 0 ? y : y + P.head + (r-1)*P.row; c.beginPath(); c.moveTo(bx, ly + .5); c.lineTo(bx + w, ly + .5); c.stroke(); }
+  });
+  // legend
+  c.fillStyle = "#5b6672"; c.font = `500 11px ${fontMono}`; c.fillText("LEGEND", P.pad, legendTop + 6);
+  legend.forEach((l, i) => {
+    const lx = P.pad + (i % perRow) * itemW, ly = legendTop + 22 + Math.floor(i / perRow) * 20;
+    swatch(c, lx, ly, 13, l);
+    c.fillStyle = "#1c232b"; c.font = `12px ${fontSans}`; c.fillText(l.name, lx + 19, ly + 7);
+    const nw = c.measureText(l.name).width;
+    c.fillStyle = "#7a8591"; c.font = `11px ${fontMono}`; c.fillText(l.hex, lx + 25 + nw, ly + 7);
+  });
+  return new Promise(res => cv.toBlob(res, "image/png"));
+}
+function swatch(c, x, y, s, cell){
+  if (cell.known){ c.fillStyle = cell.hex; c.fillRect(x, y, s, s); }
+  else {
+    c.fillStyle = "#ffffff"; c.fillRect(x, y, s, s);
+    c.save(); c.beginPath(); c.rect(x, y, s, s); c.clip(); c.strokeStyle = "#bbbbbb"; c.lineWidth = 2;
+    for (let d = -s; d < s; d += 5){ c.beginPath(); c.moveTo(x + d, y + s); c.lineTo(x + d + s, y); c.stroke(); }
+    c.restore();
+  }
+  c.strokeStyle = "rgba(0,0,0,.18)"; c.lineWidth = 1; c.strokeRect(x + .5, y + .5, s - 1, s - 1);
+}
+function fit(c, text, max){
+  if (c.measureText(text).width <= max) return text;
+  let t = text; while (t.length > 1 && c.measureText(t + "…").width > max) t = t.slice(0, -1);
+  return t + "…";
+}
+
+/* ---------- Saving files ---------- */
+let downloadsNS;
+const downloadsReady = (window.claude && typeof window.claude.use === "function")
+  ? window.claude.use("downloads").then(ns => (downloadsNS = ns)).catch(() => null)
+  : Promise.resolve(null);
+
+async function saveFile(filename, data){
+  await downloadsReady;
+  if (downloadsNS){
+    try { await downloadsNS.save({filename, data}); return "saved"; }
+    catch(e){ if (e && e.code === "declined") return "declined"; throw e; }
+  }
+  // Standalone use (opened as a local file)
+  const blob = data instanceof Blob ? data : new Blob([data], {type: filename.endsWith(".csv") ? "text/csv" : "application/octet-stream"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  return "saved";
+}
+const fileBase = tab => tab.id === "all" ? "all-workflows" : slug(tab.title);
+function setStatus(msg, cls){ const s = $("dl-status"); s.textContent = msg; s.className = "status" + (cls ? " " + cls : ""); }
+function explain(e){ return e && e.code === "rate_limited" ? "Another save prompt is still open. Finish it, then try again." : `The file could not be saved (${(e && (e.message || e.code)) || "unknown error"}).`; }
+
+async function downloadOne(tab, kind){
+  try{
+    const name = `${fileBase(tab)}-visual.${kind}`;
+    const data = kind === "csv" ? tabCSV(tab) : await tabPNG(tab);
+    const r = await saveFile(name, data);
+    setStatus(r === "saved" ? `Saved ${name}.` : `Skipped ${name}.`, r === "saved" ? "ok" : "");
+  } catch(e){ setStatus(explain(e), "bad"); }
+}
+async function downloadAll(){
+  const t = tabs(); let saved = 0, skipped = 0;
+  const btn = $("dl-all"); btn.disabled = true;
+  try{
+    for (const tab of t){
+      for (const kind of ["csv","png"]){
+        const name = `${fileBase(tab)}-visual.${kind}`;
+        setStatus(`Saving ${name} (${saved + skipped + 1} of ${t.length * 2})…`);
+        const r = await saveFile(name, kind === "csv" ? tabCSV(tab) : await tabPNG(tab));
+        r === "saved" ? saved++ : skipped++;
+        if (!downloadsNS) await new Promise(res => setTimeout(res, 350));
+      }
+    }
+    setStatus(`Saved ${saved} of ${t.length * 2} files${skipped ? `, skipped ${skipped}` : ""}.`, "ok");
+  } catch(e){ setStatus(explain(e), "bad"); }
+  btn.disabled = false;
+}
+async function downloadZip(){
+  if (!window.JSZip){ setStatus("The zip tool did not load. Use Download all files instead.", "bad"); return; }
+  try{
+    const zip = new JSZip();
+    for (const tab of tabs()){
+      zip.file(`${fileBase(tab)}-visual.csv`, tabCSV(tab));
+      zip.file(`${fileBase(tab)}-visual.png`, await tabPNG(tab));
+    }
+    const blob = await zip.generateAsync({type: "blob"});
+    const r = await saveFile("handoff-maps.zip", blob);
+    setStatus(r === "saved" ? "Saved handoff-maps.zip." : "Skipped the zip file.", r === "saved" ? "ok" : "");
+  } catch(e){ setStatus(explain(e), "bad"); }
+}
+
+/* ---------- Events ---------- */
+function loadExample(){ addWorkflow(parseCSV(EXAMPLE_CSV), "Example transcript.csv"); render(); }
+function removeFile(id){ state.files = state.files.filter(f => f.id !== id); if (state.active === id) state.active = null; render(); }
+
+$("file-input").addEventListener("change", e => { handleFiles([...e.target.files]); e.target.value = ""; });
+const drop = $("drop");
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => handleFiles([...e.dataTransfer.files]));
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("drop", e => { e.preventDefault(); if (e.dataTransfer?.files?.length) handleFiles([...e.dataTransfer.files]); });
+
+document.addEventListener("click", e => {
+  const rm = e.target.closest("[data-remove]");
+  if (rm){ e.stopPropagation(); removeFile(rm.dataset.remove); return; }
+  const tb = e.target.closest("[data-tab]"); if (tb){ state.active = tb.dataset.tab; render(); return; }
+  const op = e.target.closest("[data-open]"); if (op){ state.active = op.dataset.open; render(); return; }
+  const dl = e.target.closest("[data-dl]"); if (dl){ const t = currentTab(); if (t) downloadOne(t, dl.dataset.dl); }
+});
+document.addEventListener("keydown", e => { const op = e.target.closest?.("[data-open]"); if (op && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); state.active = op.dataset.open; render(); } });
+$("clear-all").onclick = () => { state.files = []; state.active = null; render(); setStatus(""); };
+$("dl-csv").onclick = () => { const t = currentTab(); if (t) downloadOne(t, "csv"); };
+$("dl-png").onclick = () => { const t = currentTab(); if (t) downloadOne(t, "png"); };
+$("dl-all").onclick = downloadAll;
+$("dl-zip").onclick = downloadZip;
+
+/* Resizable split */
+(function(){
+  const app = $("app"), sp = $("splitter");
+  try { const v = localStorage.getItem("hm-left"); if (v) app.style.setProperty("--left", v); } catch(_){}
+  const set = pct => { pct = Math.min(70, Math.max(22, pct)); app.style.setProperty("--left", pct + "%"); try { localStorage.setItem("hm-left", pct + "%"); } catch(_){} };
+  sp.addEventListener("pointerdown", e => {
+    sp.setPointerCapture(e.pointerId);
+    const move = ev => { const r = app.getBoundingClientRect(); set((ev.clientX - r.left) / r.width * 100); };
+    const up = () => { sp.removeEventListener("pointermove", move); sp.removeEventListener("pointerup", up); };
+    sp.addEventListener("pointermove", move); sp.addEventListener("pointerup", up);
+  });
+  sp.addEventListener("keydown", e => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const cur = parseFloat(getComputedStyle(app).getPropertyValue("--left")) || 50;
+    set(cur + (e.key === "ArrowLeft" ? -3 : 3));
+  });
+})();
+
+renderKey();
+loadExample();
+</script>
