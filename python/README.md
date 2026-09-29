@@ -17,6 +17,7 @@ streamlit run app.py
 
 - **Sidebar:** upload one or more `.csv` or `.xlsx` transcripts, turn the bundled example on or off, review parse notes, download everything as a zip, and look up the color key.
 - **Main area:** one tab per workflow, plus an **All workflows** tab (tight first, then loose) once two or more are loaded. Each tab has its own CSV and PNG download buttons. Hover over a square to see its task or handoff type.
+- **Light / dark mode:** the round button in the bottom-right corner switches themes. Streamlit remembers the choice for your next visit, and uploaded files stay loaded when you switch.
 
 ## Command line
 
