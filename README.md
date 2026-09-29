@@ -18,3 +18,7 @@ Consecutive rows of the same kind become one column: human tasks → `Human #n`,
 Each tab exports as `<name>-visual.csv` (one hex color code per square, step START/END markers above the headers, legend below) and `<name>-visual.png`.
 
 Open `index.html` directly in a browser to use it locally.
+
+## Python version
+
+The `python/` folder has a Python version of the same dashboard: a Streamlit app, plus a command-line exporter that writes the same CSV and PNG files. See `python/README.md`.
