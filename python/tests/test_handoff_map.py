@@ -55,3 +55,38 @@ def test_png_renders():
     tabs = make_tabs([load(EXAMPLE), load(HERE / "loose-example.csv")])
     img = Image.open(io.BytesIO(tab_png(tabs[-1])))
     assert img.format == "PNG" and img.width > 1000 and img.height > 400
+
+
+def test_dashboard_server_round_trip():
+    import base64
+    import json
+    import threading
+    import urllib.request
+    import zipfile
+    from http.server import ThreadingHTTPServer
+
+    from handoff_map.server import Handler
+
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{httpd.server_port}"
+
+    def post(path, body):
+        req = urllib.request.Request(url + path, json.dumps(body).encode(), {"Content-Type": "application/json"})
+        return urllib.request.urlopen(req).read()
+
+    try:
+        page = urllib.request.urlopen(url + "/").read().decode()
+        assert 'data-theme="dark"' in page and 'id="theme-toggle"' in page
+        files = [{"name": n, "filename": p.name, "data": base64.b64encode(p.read_bytes()).decode()}
+                 for n, p in (("tight-example", EXAMPLE), ("loose", HERE / "loose-example.csv"))]
+        wfs = json.loads(post("/api/parse", {"files": files}))["workflows"]
+        assert [w["name"] for w in wfs] == ["tight-example", "loose"]
+        tab = {"id": "all", "title": "All workflows", "kind": "all", "files": wfs}
+        csv_bytes = post("/api/export", {"kind": "csv", "tabs": [tab]})
+        assert csv_bytes == (GOLDEN / "all-workflows-visual.csv").read_bytes()
+        z = zipfile.ZipFile(io.BytesIO(post("/api/export", {"kind": "zip", "tabs": [tab]})))
+        assert z.namelist() == ["all-workflows-visual.csv", "all-workflows-visual.png"]
+    finally:
+        httpd.shutdown()
+        httpd.server_close()

@@ -21,4 +21,4 @@ Open `index.html` directly in a browser to use it locally.
 
 ## Python version
 
-The `python/` folder has a Python version of the same dashboard: a Streamlit app, plus a command-line exporter that writes the same CSV and PNG files. See `python/README.md`.
+The `python/` folder has a Python version of the same dashboard (`python app.py`), dark by default with a light/dark toggle, plus a command-line exporter that writes the same CSV and PNG files. See `python/README.md`.

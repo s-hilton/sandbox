@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Handoff Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#1c232b; --muted:#5b6672; --line:#dfe3e8; --line-strong:#c3cad2;
+  --accent:#1f5f8b; --accent-ink:#ffffff; --accent-soft:#e3eef6;
+  --sheet:#ffffff; --grid:#d9dde2; --warn:#9a5b00; --warn-soft:#fff3dc; --ok:#1e7a4c;
+  --tight:#6b3fa0; --tight-soft:#efe7f8; --loose:#1e7a6c; --loose-soft:#e2f4f1;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#12161b; --panel:#1a2027; --ink:#e4e8ec; --muted:#9aa5b1; --line:#2b333c; --line-strong:#3b4652;
+    --accent:#6fb0de; --accent-ink:#0d1a24; --accent-soft:#1c3040;
+    --sheet:#1f262e; --grid:#353f4a; --warn:#f0b65a; --warn-soft:#33280f; --ok:#5cc792;
+    --tight:#c2a0ec; --tight-soft:#2d2240; --loose:#6dd3c2; --loose-soft:#17332f;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#12161b; --panel:#1a2027; --ink:#e4e8ec; --muted:#9aa5b1; --line:#2b333c; --line-strong:#3b4652;
+  --accent:#6fb0de; --accent-ink:#0d1a24; --accent-soft:#1c3040;
+  --sheet:#1f262e; --grid:#353f4a; --warn:#f0b65a; --warn-soft:#33280f; --ok:#5cc792;
+  --tight:#c2a0ec; --tight-soft:#2d2240; --loose:#6dd3c2; --loose-soft:#17332f;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-inline:16px;padding-block:16px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{display:grid;grid-template-columns:minmax(280px,var(--left,50%)) 8px minmax(0,1fr);gap:0;height:100%;min-height:560px}
+.pane{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.splitter{cursor:col-resize;display:flex;align-items:center;justify-content:center}
+.splitter::after{content:"";width:2px;height:40px;border-radius:2px;background:var(--line-strong)}
+.splitter:hover::after{background:var(--accent)}
+
+.pane-head{padding:16px 20px 12px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pane-head h1,.pane-head h2{margin:0;font-size:17px;font-weight:600;text-wrap:balance}
+.eyebrow{font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.inputs{padding:16px 20px 24px;overflow:auto;display:flex;flex-direction:column;gap:22px}
+section h3{margin:0 0 8px;font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.drop{border:1.5px dashed var(--line-strong);border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:var(--bg);transition:border-color .15s,background .15s}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop p{margin:0;color:var(--muted);max-width:52ch}
+.btn{border:1px solid var(--line-strong);background:var(--panel);border-radius:6px;padding:6px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.small{padding:3px 8px;font-size:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.files{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.file{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
+.file.active{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.file-name{font-weight:500;overflow-wrap:anywhere;cursor:pointer}
+.file-meta{grid-column:1/-1;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{font:500 10.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:4px}
+.chip.tight{color:var(--tight);background:var(--tight-soft)}
+.chip.loose{color:var(--loose);background:var(--loose-soft)}
+.warns{grid-column:1/-1;margin:4px 0 0;padding:6px 10px 6px 24px;background:var(--warn-soft);color:var(--warn);border-radius:6px;font-size:12px}
+.empty-note{color:var(--muted);margin:0}
+.x{border:0;background:none;cursor:pointer;color:var(--muted);padding:2px 6px;border-radius:4px;font-size:15px;line-height:1}
+.x:hover{color:var(--ink);background:var(--bg)}
+
+.dl-grid{display:grid;gap:10px}
+.dl-card{border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.dl-card strong{font-weight:500}
+.dl-card p{margin:0;color:var(--muted);font-size:12.5px}
+.status{font-size:12.5px;color:var(--muted);min-height:1.2em;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--warn)}
+
+details.key summary{cursor:pointer;font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:4px 0}
+.key-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 16px;margin-top:10px}
+.key-item{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.key-item code{font:11px var(--mono);color:var(--muted);margin-left:auto}
+.key-group{grid-column:1/-1;font:500 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+.sw{width:14px;height:14px;border-radius:2px;flex:none;border:1px solid rgba(0,0,0,.12)}
+
+.tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:thin}
+.tab{border:1px solid transparent;border-bottom:0;background:none;padding:8px 10px 8px 12px;border-radius:7px 7px 0 0;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--muted);white-space:nowrap;margin-bottom:-1px}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--panel);border-color:var(--line);color:var(--ink);font-weight:500;box-shadow:0 1px 0 var(--panel)}
+.tab .dot{width:7px;height:7px;border-radius:50%}
+.tab .dot.tight{background:var(--tight)} .tab .dot.loose{background:var(--loose)} .tab .dot.all{background:var(--accent)}
+.tab .x{font-size:13px;padding:0 4px}
+
+.results{flex:1;overflow:auto;padding:18px 20px 28px;display:flex;flex-direction:column;gap:18px}
+.res-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.res-head h2{margin:0 0 4px;font-size:18px;font-weight:600;overflow-wrap:anywhere}
+.stats{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.stats b{color:var(--ink);font-weight:600}
+
+.sheet-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--sheet);padding:14px}
+.sheet-row{display:flex;gap:40px;align-items:flex-start;width:max-content}
+.group{display:flex;flex-direction:column;gap:8px}
+.group-label{font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 0}
+.group-label.tight{color:var(--tight)} .group-label.loose{color:var(--loose)}
+.group-body{display:flex;gap:24px;align-items:flex-start}
+.sheet-row.stack,.stack .group-body{flex-direction:column;gap:28px}
+.block-title{font-weight:500;font-size:12.5px;margin-bottom:6px;overflow-wrap:anywhere;max-width:100%}
+table.viz{border-collapse:collapse;font:12px var(--sans);table-layout:fixed}
+table.viz td,table.viz th{border:1px solid var(--grid);width:76px;min-width:76px;height:26px;padding:0;text-align:center;vertical-align:middle}
+table.viz th{font:500 11px var(--mono);color:var(--ink);background:var(--bg);white-space:nowrap}
+table.viz th.human{box-shadow:inset 0 -3px 0 #e0a15a} table.viz th.ai{box-shadow:inset 0 -3px 0 #5a8fe0} table.viz th.handoff{box-shadow:inset 0 -3px 0 #9aa5b1}
+table.viz td.stepcell{border:0;height:30px;padding:0 0 4px}
+.step{height:26px;margin:0 3px;border:1.5px solid var(--ink);border-bottom:0;display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 4px;font:500 11px var(--sans);overflow:hidden}
+.step span.lbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.step i{font:10px var(--mono);font-style:normal;color:var(--muted)}
+.sq{display:block;width:18px;height:18px;margin:auto;border-radius:2px;border:1px solid rgba(0,0,0,.14)}
+table.viz td.hit{cursor:default}
+table.viz td.hit:hover,table.viz td.hit.on{background:var(--accent-soft)}
+table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-shadow:0 0 0 2px var(--panel),0 0 0 3.5px var(--ink)}
+.sq{transition:transform .1s}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--panel);border-radius:6px;padding:8px 10px;max-width:280px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:12.5px;line-height:1.35}
+.tip-top{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px}
+.tip-top .sw{border-color:rgba(255,255,255,.35)}
+.tip-meta{margin-top:4px;font:11px/1.5 var(--mono);opacity:.8}
+.sq.unknown{background:repeating-linear-gradient(45deg,#fff 0 3px,#bbb 3px 5px)!important}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px}
+.legend .key-item code{margin-left:0}
+.hint{color:var(--muted);font-size:12.5px;margin:0}
+
+@media (max-width: 820px){
+  body{height:auto}
+  .app{grid-template-columns:1fr;height:auto;gap:16px}
+  .splitter{display:none}
+  .pane{overflow:visible}
+  .results,.inputs{overflow:visible}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+
+/* Python edition additions: theme toggle and a fuller hover popup */
+.theme-toggle{position:fixed;right:16px;bottom:16px;z-index:40;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink);font:500 13px var(--sans);cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.22)}
+.theme-toggle:hover{border-color:var(--accent)}
+.results{padding-bottom:72px}
+.tip{max-width:340px}
+.tip-kind{margin-top:3px;font:500 10.5px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;opacity:.75}
+.tip-grid{margin-top:8px;display:grid;gap:3px}
+.tip-row{display:grid;grid-template-columns:62px 1fr;gap:8px;font-size:12px;line-height:1.35}
+.tip-row span{opacity:.7}
+.tip-row b{font-weight:500;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="pane" aria-label="Inputs">
+    <div class="pane-head">
+      <h1>Handoff Map</h1>
+      <span class="eyebrow">Inputs</span>
+    </div>
+    <div class="inputs">
+      <section>
+        <h3>Upload transcripts</h3>
+        <label class="drop" id="drop" for="file-input">
+          <strong>Drop CSV files here</strong>
+          <p>The first cell names the workflow category (Tight or Loose), followed by Task Type, Handoff Type and Agent columns. Tight workflows list step labels down the first column. Excel files (.xlsx) also work.</p>
+          <span class="row" style="margin-top:6px">
+            <span class="btn primary" role="button">Choose files</span>
+            <span class="hint">Each file opens in its own tab.</span>
+          </span>
+        </label>
+        <input id="file-input" type="file" accept=".csv,.xlsx,.xls,text/csv" multiple hidden>
+      </section>
+
+      <section>
+        <div class="row" style="justify-content:space-between;margin-bottom:8px">
+          <h3 style="margin:0">Loaded workflows</h3>
+          <button class="btn small" id="clear-all" type="button">Remove all</button>
+        </div>
+        <ul class="files" id="file-list"></ul>
+      </section>
+
+      <section>
+        <h3>Download</h3>
+        <div class="dl-grid">
+          <div class="dl-card">
+            <strong id="dl-current-title">Current tab</strong>
+            <p>The CSV holds one column per group, with each square stored as its hex color code. The PNG is the picture shown on the right.</p>
+            <div class="row">
+              <button class="btn" id="dl-csv" type="button">Download CSV</button>
+              <button class="btn" id="dl-png" type="button">Download PNG</button>
+            </div>
+          </div>
+          <div class="dl-card">
+            <strong>Every tab</strong>
+            <p id="dl-all-desc">Saves a separate CSV and PNG for each tab.</p>
+            <div class="row">
+              <button class="btn primary" id="dl-all" type="button">Download all files</button>
+              <button class="btn" id="dl-zip" type="button">Download as .zip</button>
+            </div>
+          </div>
+          <p class="status" id="dl-status" role="status"></p>
+        </div>
+      </section>
+
+      <section>
+        <details class="key" id="color-key">
+          <summary>Color key · 26 task and handoff types</summary>
+          <div class="key-list" id="key-list"></div>
+        </details>
+      </section>
+    </div>
+  </aside>
+
+  <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize panels" tabindex="0"></div>
+
+  <main class="pane" aria-label="Results">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="results" id="results"></div>
+  </main>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+<button class="theme-toggle" id="theme-toggle" type="button"></button>
+
+<script>
+/* Handoff Map (Python edition). Same page as ../../../index.html; parsing and exports run in Python
+   (handoff_map/server.py), this script only draws the results. */
+
+/* ---------- Theme (dark by default) ---------- */
+(function(){
+  const root = document.documentElement, btn = document.getElementById("theme-toggle");
+  const MOON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+  const SUN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  function apply(theme){
+    root.dataset.theme = theme;
+    const next = theme === "dark" ? "light" : "dark";
+    btn.innerHTML = `${theme === "dark" ? SUN : MOON}<span>${next === "light" ? "Light mode" : "Dark mode"}</span>`;
+    btn.setAttribute("aria-label", `Switch to ${next} mode`);
+    btn.setAttribute("aria-pressed", String(theme === "dark"));
+  }
+  let saved = null;
+  try { saved = localStorage.getItem("hm-theme"); } catch(_){}
+  apply(saved === "light" ? "light" : "dark");
+  btn.addEventListener("click", () => {
+    const t = root.dataset.theme === "dark" ? "light" : "dark";
+    apply(t);
+    try { localStorage.setItem("hm-theme", t); } catch(_){}
+  });
+})();
+
+/* ---------- Color key (sent by the Python server) ---------- */
+let TYPE_GROUPS = [], HAS_EXAMPLE = false;
+
+/* ---------- API ---------- */
+async function api(path, body){
+  const res = await fetch(path, body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  if (!res.ok){
+    let msg = `${res.status} ${res.statusText}`;
+    try { msg = (await res.json()).error || msg; } catch(_){}
+    throw new Error(msg);
+  }
+  return res;
+}
+const toBase64 = buf => {
+  const bytes = new Uint8Array(buf); let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+
+/* ---------- State ---------- */
+const state = {files: [], active: null};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const baseName = n => n.replace(/\.(csv|xlsx|xls)$/i, "");
+const slug = s => s.replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"-") || "workflow";
+
+function uniqueName(n, taken){
+  let name = n, i = 2;
+  while (state.files.some(f => f.name === name) || taken.has(name)) name = `${n} (${i++})`;
+  return name;
+}
+async function handleFiles(list){
+  if (!list.length) return;
+  const taken = new Set(), items = [], errors = [];
+  for (const file of list){
+    try{
+      const name = uniqueName(baseName(file.name), taken); taken.add(name);
+      items.push({name, filename: file.name, data: toBase64(await file.arrayBuffer())});
+    } catch(err){ errors.push(`${file.name}: ${err.message}`); }
+  }
+  try{
+    const out = await (await api("/api/parse", {files: items})).json();
+    out.workflows.forEach(wf => { state.files.push(wf); state.active = wf.id; });
+    errors.push(...out.errors);
+  } catch(err){ errors.push(`the Python server did not answer (${err.message})`); }
+  render();
+  if (errors.length) setStatus("Could not read " + errors.join("; ") + ".", "bad");
+}
+
+/* ---------- Tabs model ---------- */
+function tabs(){
+  const t = state.files.map(f => ({id: f.id, title: f.name, kind: f.category, files: [f]}));
+  if (state.files.length > 1) t.push({id: "all", title: "All workflows", kind: "all", files: orderedFiles()});
+  return t;
+}
+function orderedFiles(){ return [...state.files.filter(f => f.category === "tight"), ...state.files.filter(f => f.category === "loose")]; }
+function currentTab(){ const t = tabs(); return t.find(x => x.id === state.active) || t[0] || null; }
+function groupsOf(tab){
+  return ["tight","loose"].map(cat => ({cat, files: tab.files.filter(f => f.category === cat)})).filter(g => g.files.length);
+}
+function legendOf(files){
+  const seen = new Map();
+  files.forEach(f => f.columns.forEach(c => c.cells.forEach(x => { if (!seen.has(x.name)) seen.set(x.name, x); })));
+  return [...seen.values()];
+}
+
+/* ---------- Rendering ---------- */
+function render(){
+  const t = tabs();
+  if (state.active && !t.some(x => x.id === state.active)) state.active = t.length ? t[0].id : null;
+  if (!state.active && t.length) state.active = t[0].id;
+  renderFileList(); renderTabs(t); renderResults(); renderDownloadLabels();
+}
+
+function renderFileList(){
+  const ul = $("file-list");
+  $("clear-all").hidden = !state.files.length;
+  if (!state.files.length){
+    ul.innerHTML = `<li class="empty-note">No workflows loaded yet.${HAS_EXAMPLE ? ` <button class="btn small" type="button" id="load-example">Load the example</button>` : ""}</li>`;
+    if (HAS_EXAMPLE) $("load-example").onclick = loadExample;
+    return;
+  }
+  ul.innerHTML = state.files.map(f => `
+    <li class="file ${f.id === state.active ? "active" : ""}">
+      <span class="file-name" data-open="${f.id}" tabindex="0">${esc(f.name)}</span>
+      <button class="x" type="button" data-remove="${f.id}" aria-label="Remove ${esc(f.name)}">×</button>
+      <span class="file-meta"><span class="chip ${f.category}">${f.category}</span>
+        ${f.columns.length} columns · ${f.counters.human} human · ${f.counters.ai} AI · ${f.counters.handoff} handoff${f.category === "tight" ? ` · ${f.steps.length} steps` : ""}</span>
+      ${f.warnings.length ? `<ul class="warns">${f.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}
+    </li>`).join("");
+}
+
+function renderTabs(t){
+  const el = $("tabs");
+  if (!t.length){ el.innerHTML = `<button class="tab" role="tab" aria-selected="true">Results</button>`; return; }
+  el.innerHTML = t.map(x => `
+    <button class="tab" role="tab" type="button" data-tab="${x.id}" aria-selected="${x.id === state.active}">
+      <span class="dot ${x.kind}"></span>${esc(x.title)}${x.id === "all" ? ` <span class="eyebrow">${x.files.length}</span>` : ` <span class="x" data-remove="${x.id}" role="button" aria-label="Close ${esc(x.title)}">×</span>`}
+    </button>`).join("");
+}
+
+function tableHTML(f){
+  let h = `<table class="viz"><tbody>`;
+  if (f.category === "tight" && f.steps.length){
+    h += `<tr>`; let c = 0;
+    for (const s of f.steps){
+      if (s.start > c) h += `<td class="stepcell" colspan="${s.start - c}"></td>`;
+      const span = s.end - s.start + 1;
+      h += `<td class="stepcell" colspan="${span}" title="${esc(s.label)}: ${f.columns[s.start].label} to ${f.columns[s.end].label}"><div class="step"><i>▸</i><span class="lbl">${esc(s.label)}</span><i>◂</i></div></td>`;
+      c = s.end + 1;
+    }
+    if (c < f.columns.length) h += `<td class="stepcell" colspan="${f.columns.length - c}"></td>`;
+    h += `</tr>`;
+  }
+  h += `<tr>${f.columns.map(c => `<th class="${c.kind}" scope="col">${c.label}</th>`).join("")}</tr>`;
+  for (let r = 0; r < f.rowsMax; r++){
+    h += `<tr>${f.columns.map((c, ci) => { const x = c.cells[r]; if (!x) return `<td></td>`;
+      return `<td class="hit" tabindex="0" aria-label="${esc(x.name)}, ${c.label}" data-wf="${f.id}" data-ci="${ci}" data-r="${r}"><span class="sq ${x.known ? "" : "unknown"}" style="background:${x.hex}"></span></td>`; }).join("")}</tr>`;
+  }
+  return h + `</tbody></table>`;
+}
+
+function legendHTML(items){
+  return `<div class="legend">${items.map(x => `<span class="key-item"><span class="sw ${x.known ? "" : "sq unknown"}" style="background:${x.hex};margin:0"></span>${esc(x.name)} <code>${x.hex}</code></span>`).join("")}</div>`;
+}
+
+function renderResults(){
+  const el = $("results");
+  const tab = currentTab();
+  if (!tab){
+    el.innerHTML = `<p class="hint">Upload a transcript CSV on the left to see its handoff map here.</p>`; return;
+  }
+  const files = tab.files;
+  const cols = files.reduce((a,f) => a + f.columns.length, 0);
+  let body;
+  if (tab.id === "all"){
+    body = `<div class="sheet-row stack">${groupsOf(tab).map(g => `
+      <div class="group"><div class="group-label ${g.cat}">${g.cat} · ${g.files.length}</div>
+        <div class="group-body">${g.files.map(f => `<div><div class="block-title">${esc(f.name)}</div>${tableHTML(f)}</div>`).join("")}</div>
+      </div>`).join("")}</div>`;
+  } else body = `<div class="sheet-row">${tableHTML(files[0])}</div>`;
+  const f0 = files[0];
+  el.innerHTML = `
+    <div class="res-head">
+      <div>
+        <div class="eyebrow">${tab.id === "all" ? "Stacked, tight first" : `${f0.category} workflow`}</div>
+        <h2>${esc(tab.title)}</h2>
+        <div class="stats">
+          ${tab.id === "all" ? `<span><b>${files.filter(f=>f.category==="tight").length}</b> tight</span><span><b>${files.filter(f=>f.category==="loose").length}</b> loose</span>` : ""}
+          <span><b>${cols}</b> columns</span>
+          <span><b>${files.reduce((a,f)=>a+f.counters.human,0)}</b> human</span>
+          <span><b>${files.reduce((a,f)=>a+f.counters.ai,0)}</b> AI</span>
+          <span><b>${files.reduce((a,f)=>a+f.counters.handoff,0)}</b> handoff</span>
+          ${tab.id !== "all" && f0.category === "tight" ? `<span><b>${f0.steps.length}</b> steps</span>` : ""}
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn small" type="button" data-dl="csv">CSV</button>
+        <button class="btn small" type="button" data-dl="png">PNG</button>
+      </div>
+    </div>
+    <div class="sheet-wrap">${body}</div>
+    <div><h3 class="eyebrow" style="margin:0 0 8px">Legend</h3>${legendHTML(legendOf(files))}</div>
+    <p class="hint">Hover over a square, or tap it on a touch screen, to see its task or handoff type.</p>`;
+}
+
+function renderDownloadLabels(){
+  const tab = currentTab(), t = tabs();
+  $("dl-current-title").textContent = tab ? `Current tab · ${tab.title}` : "Current tab";
+  ["dl-csv","dl-png","dl-all","dl-zip"].forEach(id => $(id).disabled = !tab);
+  $("dl-all-desc").textContent = t.length ? `Saves ${t.length * 2} files: a separate CSV and PNG for each of the ${t.length} ${t.length === 1 ? "tab" : "tabs"}.` : "Saves a separate CSV and PNG for each tab.";
+}
+
+function renderKey(){
+  const n = TYPE_GROUPS.reduce((a, [, items]) => a + items.length, 0);
+  document.querySelector("#color-key summary").textContent = `Color key · ${n} task and handoff types`;
+  $("key-list").innerHTML = TYPE_GROUPS.map(([g, items]) => `<div class="key-group">${esc(g)}</div>` +
+    items.map(([n,h]) => `<span class="key-item"><span class="sw" style="background:#${h}"></span>${esc(n)}<code>#${h}</code></span>`).join("")).join("");
+}
+
+/* ---------- Saving files (built by Python) ---------- */
+const fileBase = tab => tab.id === "all" ? "all-workflows" : slug(tab.title);
+async function exportFile(kind, tabList){
+  const res = await api("/api/export", {kind, tabs: tabList});
+  return res.blob();
+}
+function saveBlob(filename, blob){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function setStatus(msg, cls){ const s = $("dl-status"); s.textContent = msg; s.className = "status" + (cls ? " " + cls : ""); }
+const explain = e => `The file could not be saved (${(e && e.message) || "unknown error"}).`;
+
+async function downloadOne(tab, kind){
+  try{
+    const name = `${fileBase(tab)}-visual.${kind}`;
+    setStatus(`Building ${name}…`);
+    saveBlob(name, await exportFile(kind, [tab]));
+    setStatus(`Saved ${name}.`, "ok");
+  } catch(e){ setStatus(explain(e), "bad"); }
+}
+async function downloadAll(){
+  const t = tabs(); let saved = 0;
+  const btn = $("dl-all"); btn.disabled = true;
+  try{
+    for (const tab of t){
+      for (const kind of ["csv","png"]){
+        const name = `${fileBase(tab)}-visual.${kind}`;
+        setStatus(`Saving ${name} (${saved + 1} of ${t.length * 2})…`);
+        saveBlob(name, await exportFile(kind, [tab]));
+        saved++;
+        await new Promise(res => setTimeout(res, 350));
+      }
+    }
+    setStatus(`Saved ${saved} of ${t.length * 2} files.`, "ok");
+  } catch(e){ setStatus(explain(e), "bad"); }
+  btn.disabled = false;
+}
+async function downloadZip(){
+  try{
+    setStatus("Building handoff-maps.zip…");
+    saveBlob("handoff-maps.zip", await exportFile("zip", tabs()));
+    setStatus("Saved handoff-maps.zip.", "ok");
+  } catch(e){ setStatus(explain(e), "bad"); }
+}
+
+/* ---------- Hover tooltip ---------- */
+(function(){
+  const tip = $("tip"); let cur = null;
+  const KIND = {human: "Human task", ai: "AI task", handoff: "Handoff"};
+  const row = (k, v) => `<div class="tip-row"><span>${k}</span><b>${v}</b></div>`;
+  function show(td){
+    if (cur && cur !== td) cur.classList.remove("on");
+    cur = td; td.classList.add("on");
+    const f = state.files.find(w => w.id === td.dataset.wf); if (!f) return;
+    const ci = +td.dataset.ci, r = +td.dataset.r, col = f.columns[ci], x = col.cells[r];
+    const st = f.steps.find(s => ci >= s.start && ci <= s.end);
+    const WHO = {human: "Human", ai: "AI"};
+    let agent = WHO[col.kind];
+    if (col.kind === "handoff"){
+      const prev = f.columns.slice(0, ci).reverse().find(c => c.kind !== "handoff");
+      const next = f.columns.slice(ci + 1).find(c => c.kind !== "handoff");
+      agent = `${prev ? `${WHO[prev.kind]} (${prev.label})` : "Start"} → ${next ? `${WHO[next.kind]} (${next.label})` : "End"}`;
+    }
+    tip.innerHTML = `<div class="tip-top"><span class="sw ${x.known ? "" : "sq unknown"}" style="background:${x.hex};margin:0"></span>${esc(x.name)}</div>
+      <div class="tip-kind">${KIND[col.kind]}</div>
+      <div class="tip-grid">
+        ${row("Workflow", `${esc(f.name)} · ${f.category}`)}
+        ${f.category === "tight" ? row("Step", st ? `${esc(st.label)} (${f.columns[st.start].label} to ${f.columns[st.end].label})` : "Outside any step") : ""}
+        ${row("Column", `${col.label} · column ${ci + 1} of ${f.columns.length}`)}
+        ${row("Position", `item ${r + 1} of ${col.cells.length} in this column`)}
+        ${row(col.kind === "handoff" ? "Passes" : "Agent", agent)}
+        ${row("Color", `${x.hex}${x.known ? "" : " · no color set"}`)}
+      </div>`;
+    tip.hidden = false;
+    const rc = td.getBoundingClientRect(), t = tip.getBoundingClientRect();
+    let left = rc.left + rc.width / 2 - t.width / 2, top = rc.top - t.height - 8;
+    if (top < 8) top = rc.bottom + 8;
+    left = Math.max(8, Math.min(left, window.innerWidth - t.width - 8));
+    tip.style.left = left + "px"; tip.style.top = top + "px";
+  }
+  function hide(){ tip.hidden = true; if (cur) cur.classList.remove("on"); cur = null; }
+  document.addEventListener("mouseover", e => { const td = e.target.closest("td.hit"); td ? show(td) : (cur && hide()); });
+  document.addEventListener("focusin", e => { const td = e.target.closest("td.hit"); td ? show(td) : (cur && hide()); });
+  document.addEventListener("click", e => { const td = e.target.closest("td.hit"); if (td) show(td); else if (cur) hide(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") hide(); });
+  window.addEventListener("scroll", hide, true);
+  window.addEventListener("resize", hide);
+})();
+
+/* ---------- Events ---------- */
+async function loadExample(){
+  try{
+    const out = await (await api("/api/example")).json();
+    out.workflows.forEach(wf => { wf.name = uniqueName(wf.name, new Set()); state.files.push(wf); state.active = wf.id; });
+  } catch(err){ setStatus(`Could not load the example (${err.message}).`, "bad"); }
+  render();
+}
+function removeFile(id){ state.files = state.files.filter(f => f.id !== id); if (state.active === id) state.active = null; render(); }
+
+$("file-input").addEventListener("change", e => { handleFiles([...e.target.files]); e.target.value = ""; });
+const drop = $("drop");
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => { e.stopPropagation(); handleFiles([...e.dataTransfer.files]); });
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("drop", e => { e.preventDefault(); if (e.dataTransfer?.files?.length) handleFiles([...e.dataTransfer.files]); });
+
+document.addEventListener("click", e => {
+  const rm = e.target.closest("[data-remove]");
+  if (rm){ e.stopPropagation(); removeFile(rm.dataset.remove); return; }
+  const tb = e.target.closest("[data-tab]"); if (tb){ state.active = tb.dataset.tab; render(); return; }
+  const op = e.target.closest("[data-open]"); if (op){ state.active = op.dataset.open; render(); return; }
+  const dl = e.target.closest("[data-dl]"); if (dl){ const t = currentTab(); if (t) downloadOne(t, dl.dataset.dl); }
+});
+document.addEventListener("keydown", e => { const op = e.target.closest?.("[data-open]"); if (op && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); state.active = op.dataset.open; render(); } });
+$("clear-all").onclick = () => { state.files = []; state.active = null; render(); setStatus(""); };
+$("dl-csv").onclick = () => { const t = currentTab(); if (t) downloadOne(t, "csv"); };
+$("dl-png").onclick = () => { const t = currentTab(); if (t) downloadOne(t, "png"); };
+$("dl-all").onclick = downloadAll;
+$("dl-zip").onclick = downloadZip;
+
+/* Resizable split */
+(function(){
+  const app = $("app"), sp = $("splitter");
+  try { const v = localStorage.getItem("hm-left"); if (v) app.style.setProperty("--left", v); } catch(_){}
+  const set = pct => { pct = Math.min(70, Math.max(22, pct)); app.style.setProperty("--left", pct + "%"); try { localStorage.setItem("hm-left", pct + "%"); } catch(_){} };
+  sp.addEventListener("pointerdown", e => {
+    sp.setPointerCapture(e.pointerId);
+    const move = ev => { const r = app.getBoundingClientRect(); set((ev.clientX - r.left) / r.width * 100); };
+    const up = () => { sp.removeEventListener("pointermove", move); sp.removeEventListener("pointerup", up); };
+    sp.addEventListener("pointermove", move); sp.addEventListener("pointerup", up);
+  });
+  sp.addEventListener("keydown", e => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const cur = parseFloat(getComputedStyle(app).getPropertyValue("--left")) || 50;
+    set(cur + (e.key === "ArrowLeft" ? -3 : 3));
+  });
+})();
+
+(async function init(){
+  try{
+    const cfg = await (await api("/api/config")).json();
+    TYPE_GROUPS = cfg.typeGroups; HAS_EXAMPLE = cfg.hasExample;
+  } catch(err){ setStatus(`Could not reach the Python server (${err.message}). Start it with: python app.py`, "bad"); }
+  renderKey();
+  if (HAS_EXAMPLE) await loadExample(); else render();
+})();
+</script>
+</body>
+</html>

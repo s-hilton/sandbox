@@ -85,6 +85,23 @@ class Workflow:
     def step_for(self, col_index: int) -> Step | None:
         return next((s for s in self.steps if s.start <= col_index <= s.end), None)
 
+    def to_dict(self) -> dict:
+        """JSON shape used by the dashboard page (same fields as the browser version)."""
+        return {"id": self.id, "name": self.name, "category": self.category,
+                "columns": [{"kind": c.kind, "step": c.step, "label": c.label,
+                             "cells": [vars(x).copy() for x in c.cells]} for c in self.columns],
+                "steps": [vars(s).copy() for s in self.steps], "warnings": list(self.warnings),
+                "counters": dict(self.counters), "rowsMax": self.rows_max}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Workflow":
+        columns = [Column(c["kind"], int(c["step"]), c["label"],
+                          [Cell(str(x["name"]), str(x["hex"]), bool(x["known"])) for x in c["cells"]])
+                   for c in d["columns"]]
+        steps = [Step(s["label"], int(s["start"]), int(s["end"])) for s in d["steps"]]
+        return cls(d["name"], d["category"], columns, steps, list(d.get("warnings", [])),
+                   dict(d["counters"]), d["id"])
+
 
 # ---------- Parsing ----------
 def parse_csv(text: str) -> list[list[str]]:
