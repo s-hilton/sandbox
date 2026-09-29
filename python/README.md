@@ -22,6 +22,14 @@ python app.py
 
 This starts a local server at http://localhost:8501 and opens it in your browser. Use `--port` to pick another port, and `--no-browser` to skip opening a window. The server only listens on this computer.
 
+## Run it in GitHub Codespaces
+
+1. On the repository page, click **Code** → **Codespaces** → **Create codespace** on this branch.
+2. Wait for it to finish setting up. The dashboard installs and starts by itself, and opens in a new browser tab.
+3. If the tab doesn't open (for example, because of a pop-up blocker), open the **Ports** tab next to the terminal and click the globe icon next to **Handoff Map (8501)**.
+
+To restart it later, run `cd python && python app.py --no-browser` in the terminal.
+
 ## Command line
 
 ```bash
