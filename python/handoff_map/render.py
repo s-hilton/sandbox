@@ -108,6 +108,8 @@ def tab_png(tab: Tab) -> bytes:
     heading = "All workflows" if multi else tab.title
     sub = (f"{len(tab.files)} workflows · stacked, tight first" if multi
            else f"{tab.files[0].category.upper()} WORKFLOW")
+    if tab.level == "high":
+        sub += " · HIGHER-LEVEL TASK TYPES"
     text(P["pad"], P["pad"] + 8, heading, font("sans-bold", 16), INK)
     tw = d.textlength(heading, font=font("sans-bold", 16)) / SCALE
     text(P["pad"] + tw + 12, P["pad"] + 9, sub, font("mono", 11), MUTED)

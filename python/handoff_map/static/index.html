@@ -151,6 +151,15 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
 .tip-row{display:grid;grid-template-columns:62px 1fr;gap:8px;font-size:12px;line-height:1.35}
 .tip-row span{opacity:.7}
 .tip-row b{font-weight:500;overflow-wrap:anywhere}
+
+/* Task types / higher-level task types switch on each map */
+.block-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.block-head .block-title{margin:0}
+.level{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden;flex:none}
+.level button{border:0;background:var(--panel);padding:3px 10px;font-size:12px;cursor:pointer;color:var(--muted)}
+.level button+button{border-left:1px solid var(--line-strong)}
+.level button:hover{color:var(--ink)}
+.level button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 </style>
 </head>
 <body>
@@ -165,7 +174,7 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
         <h3>Upload transcripts</h3>
         <label class="drop" id="drop" for="file-input">
           <strong>Drop CSV files here</strong>
-          <p>The first cell names the workflow category (Tight or Loose), followed by Task Type, Handoff Type and Agent columns. Tight workflows list step labels down the first column. Excel files (.xlsx) also work.</p>
+          <p>The first cell names the workflow category (Tight or Loose), followed by Task Type, Higher-Level Task Type (optional, e.g. “Macro Task”), Handoff Type and Agent columns. Tight workflows list step labels down the first column. Excel files (.xlsx) also work.</p>
           <span class="row" style="margin-top:6px">
             <span class="btn primary" role="button">Choose files</span>
             <span class="hint">Each file opens in its own tab.</span>
@@ -187,7 +196,7 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
         <div class="dl-grid">
           <div class="dl-card">
             <strong id="dl-current-title">Current tab</strong>
-            <p>The CSV holds one column per group, with each square stored as its hex color code. The PNG is the picture shown on the right.</p>
+            <p>The CSV holds one column per group, with each square stored as its hex color code. The PNG is the picture shown on the right. Workflows with higher-level task types save both versions (the second ends in <code>-high-level</code>).</p>
             <div class="row">
               <button class="btn" id="dl-csv" type="button">Download CSV</button>
               <button class="btn" id="dl-png" type="button">Download PNG</button>
@@ -207,7 +216,7 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
 
       <section>
         <details class="key" id="color-key">
-          <summary>Color key · 26 task and handoff types</summary>
+          <summary>Color key</summary>
           <div class="key-list" id="key-list"></div>
         </details>
       </section>
@@ -272,7 +281,7 @@ const toBase64 = buf => {
 };
 
 /* ---------- State ---------- */
-const state = {files: [], active: null};
+const state = {files: [], active: null, levels: {}};
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const baseName = n => n.replace(/\.(csv|xlsx|xls)$/i, "");
@@ -312,6 +321,13 @@ function currentTab(){ const t = tabs(); return t.find(x => x.id === state.activ
 function groupsOf(tab){
   return ["tight","loose"].map(cat => ({cat, files: tab.files.filter(f => f.category === cat)})).filter(g => g.files.length);
 }
+/* Each map shows task types ("task") or higher-level task types ("high"), switched per map */
+const levelKey = (tab, f) => `${tab.id}:${f.id}`;
+const levelOf = (tab, f) => f.hasHigh && state.levels[levelKey(tab, f)] === "high" ? "high" : "task";
+const view = (f, level) => level === "high" && f.hasHigh
+  ? {...f, level, rowsMax: f.highRowsMax, columns: f.columns.map(c => ({...c, cells: c.highCells}))}
+  : {...f, level: "task"};
+const levelsOf = tab => tab.files.some(f => f.hasHigh) ? ["task", "high"] : ["task"];
 function legendOf(files){
   const seen = new Map();
   files.forEach(f => f.columns.forEach(c => c.cells.forEach(x => { if (!seen.has(x.name)) seen.set(x.name, x); })));
@@ -353,6 +369,14 @@ function renderTabs(t){
     </button>`).join("");
 }
 
+function levelHTML(tab, f){
+  if (!f.hasHigh) return "";
+  const lv = levelOf(tab, f), key = esc(levelKey(tab, f));
+  return `<div class="level" role="group" aria-label="Square colors for ${esc(f.name)}">
+    <button type="button" data-level="task" data-key="${key}" aria-pressed="${lv === "task"}">Task types</button>
+    <button type="button" data-level="high" data-key="${key}" aria-pressed="${lv === "high"}">Higher-level task types</button></div>`;
+}
+
 function tableHTML(f){
   let h = `<table class="viz"><tbody>`;
   if (f.category === "tight" && f.steps.length){
@@ -369,7 +393,7 @@ function tableHTML(f){
   h += `<tr>${f.columns.map(c => `<th class="${c.kind}" scope="col">${c.label}</th>`).join("")}</tr>`;
   for (let r = 0; r < f.rowsMax; r++){
     h += `<tr>${f.columns.map((c, ci) => { const x = c.cells[r]; if (!x) return `<td></td>`;
-      return `<td class="hit" tabindex="0" aria-label="${esc(x.name)}, ${c.label}" data-wf="${f.id}" data-ci="${ci}" data-r="${r}"><span class="sq ${x.known ? "" : "unknown"}" style="background:${x.hex}"></span></td>`; }).join("")}</tr>`;
+      return `<td class="hit" tabindex="0" aria-label="${esc(x.name)}, ${c.label}" data-wf="${f.id}" data-lv="${f.level}" data-ci="${ci}" data-r="${r}"><span class="sq ${x.known ? "" : "unknown"}" style="background:${x.hex}"></span></td>`; }).join("")}</tr>`;
   }
   return h + `</tbody></table>`;
 }
@@ -390,9 +414,9 @@ function renderResults(){
   if (tab.id === "all"){
     body = `<div class="sheet-row stack">${groupsOf(tab).map(g => `
       <div class="group"><div class="group-label ${g.cat}">${g.cat} · ${g.files.length}</div>
-        <div class="group-body">${g.files.map(f => `<div><div class="block-title">${esc(f.name)}</div>${tableHTML(f)}</div>`).join("")}</div>
+        <div class="group-body">${g.files.map(f => `<div><div class="block-head"><div class="block-title">${esc(f.name)}</div>${levelHTML(tab, f)}</div>${tableHTML(view(f, levelOf(tab, f)))}</div>`).join("")}</div>
       </div>`).join("")}</div>`;
-  } else body = `<div class="sheet-row">${tableHTML(files[0])}</div>`;
+  } else body = `${files[0].hasHigh ? `<div class="block-head">${levelHTML(tab, files[0])}</div>` : ""}<div class="sheet-row">${tableHTML(view(files[0], levelOf(tab, files[0])))}</div>`;
   const f0 = files[0];
   el.innerHTML = `
     <div class="res-head">
@@ -409,33 +433,34 @@ function renderResults(){
         </div>
       </div>
       <div class="row">
-        <button class="btn small" type="button" data-dl="csv">CSV</button>
-        <button class="btn small" type="button" data-dl="png">PNG</button>
+        <button class="btn small" type="button" data-dl="csv">CSV${levelsOf(tab).length > 1 ? " ×2" : ""}</button>
+        <button class="btn small" type="button" data-dl="png">PNG${levelsOf(tab).length > 1 ? " ×2" : ""}</button>
       </div>
     </div>
     <div class="sheet-wrap">${body}</div>
-    <div><h3 class="eyebrow" style="margin:0 0 8px">Legend</h3>${legendHTML(legendOf(files))}</div>
-    <p class="hint">Hover over a square, or tap it on a touch screen, to see its task or handoff type.</p>`;
+    <div><h3 class="eyebrow" style="margin:0 0 8px">Legend</h3>${legendHTML(legendOf(files.map(f => view(f, levelOf(tab, f)))))}</div>
+    <p class="hint">Hover over a square, or tap it on a touch screen, to see its task or handoff type.${files.some(f => f.hasHigh) ? " Switch between task types and higher-level task types above each map. Downloads include both versions." : ""}</p>`;
 }
 
 function renderDownloadLabels(){
   const tab = currentTab(), t = tabs();
   $("dl-current-title").textContent = tab ? `Current tab · ${tab.title}` : "Current tab";
   ["dl-csv","dl-png","dl-all","dl-zip"].forEach(id => $(id).disabled = !tab);
-  $("dl-all-desc").textContent = t.length ? `Saves ${t.length * 2} files: a separate CSV and PNG for each of the ${t.length} ${t.length === 1 ? "tab" : "tabs"}.` : "Saves a separate CSV and PNG for each tab.";
+  const n = t.reduce((a, x) => a + levelsOf(x).length * 2, 0), both = t.some(x => levelsOf(x).length > 1);
+  $("dl-all-desc").textContent = t.length ? `Saves ${n} files: a separate CSV and PNG for each of the ${t.length} ${t.length === 1 ? "tab" : "tabs"}${both ? ", for task types and for higher-level task types" : ""}.` : "Saves a separate CSV and PNG for each tab.";
 }
 
 function renderKey(){
   const n = TYPE_GROUPS.reduce((a, [, items]) => a + items.length, 0);
-  document.querySelector("#color-key summary").textContent = `Color key · ${n} task and handoff types`;
+  document.querySelector("#color-key summary").textContent = `Color key · ${n} task, higher-level task and handoff types`;
   $("key-list").innerHTML = TYPE_GROUPS.map(([g, items]) => `<div class="key-group">${esc(g)}</div>` +
     items.map(([n,h]) => `<span class="key-item"><span class="sw" style="background:#${h}"></span>${esc(n)}<code>#${h}</code></span>`).join("")).join("");
 }
 
 /* ---------- Saving files (built by Python) ---------- */
-const fileBase = tab => tab.id === "all" ? "all-workflows" : slug(tab.title);
-async function exportFile(kind, tabList){
-  const res = await api("/api/export", {kind, tabs: tabList});
+const fileBase = (tab, level) => (tab.id === "all" ? "all-workflows" : slug(tab.title)) + (level === "high" ? "-high-level" : "");
+async function exportFile(kind, tabList, level = "task"){
+  const res = await api("/api/export", {kind, tabs: tabList.map(t => ({...t, level}))});
   return res.blob();
 }
 function saveBlob(filename, blob){
@@ -447,28 +472,37 @@ function saveBlob(filename, blob){
 function setStatus(msg, cls){ const s = $("dl-status"); s.textContent = msg; s.className = "status" + (cls ? " " + cls : ""); }
 const explain = e => `The file could not be saved (${(e && e.message) || "unknown error"}).`;
 
+// Workflows with higher-level task types save both versions of every file
 async function downloadOne(tab, kind){
   try{
-    const name = `${fileBase(tab)}-visual.${kind}`;
-    setStatus(`Building ${name}…`);
-    saveBlob(name, await exportFile(kind, [tab]));
-    setStatus(`Saved ${name}.`, "ok");
+    const names = [];
+    for (const level of levelsOf(tab)){
+      const name = `${fileBase(tab, level)}-visual.${kind}`;
+      setStatus(`Building ${name}…`);
+      saveBlob(name, await exportFile(kind, [tab], level));
+      names.push(name);
+      if (names.length < levelsOf(tab).length) await new Promise(res => setTimeout(res, 350));
+    }
+    setStatus(`Saved ${names.join(" and ")}.`, "ok");
   } catch(e){ setStatus(explain(e), "bad"); }
 }
 async function downloadAll(){
   const t = tabs(); let saved = 0;
+  const total = t.reduce((a, x) => a + levelsOf(x).length * 2, 0);
   const btn = $("dl-all"); btn.disabled = true;
   try{
     for (const tab of t){
-      for (const kind of ["csv","png"]){
-        const name = `${fileBase(tab)}-visual.${kind}`;
-        setStatus(`Saving ${name} (${saved + 1} of ${t.length * 2})…`);
-        saveBlob(name, await exportFile(kind, [tab]));
-        saved++;
-        await new Promise(res => setTimeout(res, 350));
+      for (const level of levelsOf(tab)){
+        for (const kind of ["csv","png"]){
+          const name = `${fileBase(tab, level)}-visual.${kind}`;
+          setStatus(`Saving ${name} (${saved + 1} of ${total})…`);
+          saveBlob(name, await exportFile(kind, [tab], level));
+          saved++;
+          await new Promise(res => setTimeout(res, 350));
+        }
       }
     }
-    setStatus(`Saved ${saved} of ${t.length * 2} files.`, "ok");
+    setStatus(`Saved ${saved} of ${total} files.`, "ok");
   } catch(e){ setStatus(explain(e), "bad"); }
   btn.disabled = false;
 }
@@ -488,7 +522,8 @@ async function downloadZip(){
   function show(td){
     if (cur && cur !== td) cur.classList.remove("on");
     cur = td; td.classList.add("on");
-    const f = state.files.find(w => w.id === td.dataset.wf); if (!f) return;
+    const wf = state.files.find(w => w.id === td.dataset.wf); if (!wf) return;
+    const f = view(wf, td.dataset.lv), high = f.level === "high";
     const ci = +td.dataset.ci, r = +td.dataset.r, col = f.columns[ci], x = col.cells[r];
     const st = f.steps.find(s => ci >= s.start && ci <= s.end);
     const WHO = {human: "Human", ai: "AI"};
@@ -499,12 +534,14 @@ async function downloadZip(){
       agent = `${prev ? `${WHO[prev.kind]} (${prev.label})` : "Start"} → ${next ? `${WHO[next.kind]} (${next.label})` : "End"}`;
     }
     tip.innerHTML = `<div class="tip-top"><span class="sw ${x.known ? "" : "sq unknown"}" style="background:${x.hex};margin:0"></span>${esc(x.name)}</div>
-      <div class="tip-kind">${KIND[col.kind]}</div>
+      <div class="tip-kind">${KIND[col.kind]}${high && col.kind !== "handoff" ? " · higher-level" : ""}</div>
       <div class="tip-grid">
         ${row("Workflow", `${esc(f.name)} · ${f.category}`)}
         ${f.category === "tight" ? row("Step", st ? `${esc(st.label)} (${f.columns[st.start].label} to ${f.columns[st.end].label})` : "Outside any step") : ""}
         ${row("Column", `${col.label} · column ${ci + 1} of ${f.columns.length}`)}
         ${row("Position", `item ${r + 1} of ${col.cells.length} in this column`)}
+        ${high && x.tasks && x.tasks.length ? row("Includes", x.tasks.map(esc).join(", ")) : ""}
+        ${!high && wf.hasHigh && x.group ? row("Higher-level", esc(x.group)) : ""}
         ${row(col.kind === "handoff" ? "Passes" : "Agent", agent)}
         ${row("Color", `${x.hex}${x.known ? "" : " · no color set"}`)}
       </div>`;
@@ -547,6 +584,7 @@ document.addEventListener("click", e => {
   if (rm){ e.stopPropagation(); removeFile(rm.dataset.remove); return; }
   const tb = e.target.closest("[data-tab]"); if (tb){ state.active = tb.dataset.tab; render(); return; }
   const op = e.target.closest("[data-open]"); if (op){ state.active = op.dataset.open; render(); return; }
+  const lv = e.target.closest("[data-level]"); if (lv){ state.levels[lv.dataset.key] = lv.dataset.level; renderResults(); return; }
   const dl = e.target.closest("[data-dl]"); if (dl){ const t = currentTab(); if (t) downloadOne(t, dl.dataset.dl); }
 });
 document.addEventListener("keydown", e => { const op = e.target.closest?.("[data-open]"); if (op && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); state.active = op.dataset.open; render(); } });

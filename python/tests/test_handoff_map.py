@@ -5,7 +5,7 @@ from pathlib import Path
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from handoff_map.core import build_workflow, load_workflow, make_tabs, parse_csv, tab_csv  # noqa: E402
+from handoff_map.core import build_workflow, file_base, load_workflow, make_tabs, parse_csv, tab_csv, tab_levels  # noqa: E402
 from handoff_map.render import tab_png  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
@@ -34,6 +34,7 @@ def test_example_structure():
     assert wf.counters == {"human": 7, "ai": 7, "handoff": 13}
     assert wf.steps[0].label == "Step 1: Propose" and len(wf.steps) == 5
     assert wf.columns[0].label == "AI #1" and wf.columns[0].cells[0].hex == "#FFB8FB"
+    assert len(wf.warnings) == 1  # the Orienting to Next Step row with no higher-level type
 
 
 def test_groups_never_cross_steps_and_agents_inherit():
@@ -49,6 +50,56 @@ def test_unknown_types_and_delimiter_sniffing():
     cell = wf.columns[0].cells[0]
     assert (cell.known, cell.hex) == (False, "#FFFFFF")
     assert any("Odd Thing" in w for w in wf.warnings)
+
+
+def test_higher_level_task_types():
+    wf = load(EXAMPLE)
+    assert wf.has_high and not load(HERE / "loose-example.csv").has_high
+    high = wf.at_level("high")
+    # Blank higher-level cells continue the one above, so each higher-level task is one square
+    assert [(x.name, len(x.tasks)) for x in high.columns[2].cells] == [("Validating the course plan", 17)]
+    assert wf.columns[2].cells[6].group == "Validating the course plan"
+    assert [(x.name, x.hex) for x in high.columns[18].cells] == [
+        ("Evaluating the proposed schedule", "#FFF0AD"), ("Reviewing and refining course recommendations", "#ADFFD5")]
+    # A blank row right after another agent's task has no higher-level type, so it keeps its task type
+    assert [(x.name, x.tasks) for x in high.columns[22].cells] == [
+        ("Orienting to Next Step", ["Orienting to Next Step"]),
+        ("Decision Making", ["Reviewing AI Self-Check Results", "Approving"])]
+    assert any("no higher-level task type" in w for w in wf.warnings)
+    # Same column structure, handoffs unchanged, task view untouched
+    assert [c.label for c in high.columns] == [c.label for c in wf.columns]
+    assert high.columns[1].cells == wf.columns[1].cells and len(wf.columns[2].cells) == 17
+    # Shared names keep their task-type color
+    assert high.columns[0].cells[0].hex == "#FFB8FB"  # Black Box
+
+
+def test_higher_level_matches_browser_export():
+    tabs = make_tabs([load(EXAMPLE), load(HERE / "loose-example.csv", "loose")])
+    for tab, golden in ((tabs[0], "tight-example"), (tabs[-1], "all-workflows")):
+        high = tab_levels(tab)[1]
+        assert file_base(high) == golden + "-high-level"
+        assert tab_csv(high) == (GOLDEN / f"{golden}-high-level-visual.csv").read_bytes().decode()
+
+
+def test_higher_level_header_and_new_column():
+    rows = parse_csv("Loose,Task Type,Higher Level Task Type,Handoff Type,Agent\n"
+                     ",Pause,,,Human\n,Approving,Decision Making,,Human\n,Pause,,,Human\n,,,General Request,\n"
+                     ",Approving,,,Human\n")
+    wf = build_workflow(rows, "l")
+    assert wf.has_high and [c.label for c in wf.columns] == ["Human #1", "Handoff #1", "Human #2"]
+    assert any("no higher-level task type" in w for w in wf.warnings)
+    high = wf.at_level("high")
+    assert [(x.name, x.tasks) for x in high.columns[0].cells] == [("Pause", ["Pause"]),
+                                                                  ("Decision Making", ["Approving", "Pause"])]
+    # A higher-level task carries on into the next column after a handoff
+    assert [(x.name, x.hex) for x in high.columns[2].cells] == [("Decision Making", "#FFADBC")]
+
+
+def test_exports_both_versions():
+    tabs = make_tabs([load(EXAMPLE), load(HERE / "loose-example.csv", "loose")])
+    names = [file_base(t) for tab in tabs for t in tab_levels(tab)]
+    assert names == ["tight-example", "tight-example-high-level", "loose", "all-workflows",
+                     "all-workflows-high-level"]
 
 
 def test_png_renders():
@@ -86,7 +137,10 @@ def test_dashboard_server_round_trip():
         csv_bytes = post("/api/export", {"kind": "csv", "tabs": [tab]})
         assert csv_bytes == (GOLDEN / "all-workflows-visual.csv").read_bytes()
         z = zipfile.ZipFile(io.BytesIO(post("/api/export", {"kind": "zip", "tabs": [tab]})))
-        assert z.namelist() == ["all-workflows-visual.csv", "all-workflows-visual.png"]
+        assert z.namelist() == ["all-workflows-visual.csv", "all-workflows-visual.png",
+                                "all-workflows-high-level-visual.csv", "all-workflows-high-level-visual.png"]
+        high = post("/api/export", {"kind": "csv", "tabs": [{**tab, "level": "high"}]}).decode()
+        assert high == tab_csv(make_tabs([load(EXAMPLE), load(HERE / "loose-example.csv", "loose")])[-1].at_level("high"))
     finally:
         httpd.shutdown()
         httpd.server_close()

@@ -6,7 +6,7 @@ import sys
 import zipfile
 from pathlib import Path
 
-from .core import base_name, file_base, load_workflow, make_tabs, tab_csv
+from .core import base_name, file_base, load_workflow, make_tabs, tab_csv, tab_levels
 from .render import tab_png
 
 
@@ -37,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     outputs: list[tuple[str, bytes]] = []
-    for tab in make_tabs(workflows):
+    for tab in (t for tab in make_tabs(workflows) for t in tab_levels(tab)):
         outputs.append((f"{file_base(tab)}-visual.csv", tab_csv(tab).encode("utf-8")))
         if not args.no_png:
             outputs.append((f"{file_base(tab)}-visual.png", tab_png(tab)))
