@@ -3,49 +3,76 @@ Step 1: Propose,Black Box,Black Box,,AI
 ,Black Box,,,AI
 ,,,Direction to Check,
 ,,,Intermediate Product,
-,Cross-Checking Against AI Reasoning,Review AI,,Human
+,Cross-Checking Prerequisites,Validating the course plan,,Human
+,Cross-Checking Prerequisites,,,Human
+,Cross-Checking Course Availability,,,Human
+,Cross-Checking Course Availability,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Cross-Checking Course Availability,,,Human
 ,Pause,,,Human
-,Drafting Prompt,Prompting,,Human
+,Drafting Prompt,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Drafting Prompt,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Drafting Prompt,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Drafting Prompt,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Drafting Prompt,,,Human
 ,,,Specific Request,
 ,Black Box,Black Box,,AI
 ,Black Box,,,AI
 ,,,Direction to Check,
 ,,,Intermediate Product,
-,Drafting Prompt,Prompting,,Human
-,Cross-Checking Against AI Reasoning,Review AI Course,,
-,Cross-Checking Credit Load,,,
-,Pause,Prompting,,Human
+,Cross-Checking Prerequisites,Validating the course plan,,Human
+,Cross-Checking Prerequisites,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Pause,,,Human
 ,Drafting Prompt,,,Human
 ,,,General Request,
 ,Black Box,Black Box,,AI
 ,Black Box,,,AI
 ,,,Direction to Check,
 ,,,Intermediate Product,
-,Reviewing AI Reasoning,Review AI,,Human
-,Approving,Decision Making,,Human
+,Cross-Checking Prerequisites,Validating the course plan,,Human
+,Cross-Checking Prerequisites,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Approving,,,Human
 ,,,Direction to Proceed,
 Step 2: Offerings,Black Box,Black Box,,AI
 ,Black Box,,,AI
 ,,,Direction to Check,
 ,,,Intermediate Product,
-,Approving,Decision Making,,Human
+,Reviewing AI Self-Check Results,Decision Making,,Human
+,Approving,,,Human
 ,,,Direction to Proceed,
 Step 3: Schedule,Black Box,Black Box,,AI
 ,Black Box,,,AI
 ,,,Direction to Check,
 ,,,Intermediate Product,
-,Reviewing Proposed Calendar,Review AI,,Human
-,Approving,Decision Making,,Human
+,Reviewing Proposed Calendar,Evaluating the proposed schedule,,Human
+,Reviewing Plan Revisions,Reviewing and refining course recommendations,,Human
+,Orienting to Next Step,,,Human
+,Orienting to Next Step,,,Human
+,Approving,,,Human
 ,,,Direction to Proceed,
 Step 4: Prereqs,Black Box,Black Box,,AI
 ,Black Box,,,AI
 ,,,Direction to Check,
 ,,,Intermediate Product,
-,Approving,Decision Making,,Human
+,Orienting to Next Step,,,Human
+,Reviewing AI Self-Check Results,Decision Making,,Human
+,Approving,,,Human
 ,,,Direction to Proceed,
 Step 5: Submit,Black Box,Black Box,,AI
 ,Black Box,,,AI
 ,,,Direction to Check,
 ,,,Intermediate Product,
-,Submitting Final Plan,Submitting Final Plan,,Human
-,,,,
+,Approving,Finalizing the course plan,,Human
+,Submitting Final Plan,,,Human

@@ -1,0 +1,18 @@
+START: Step 1: Propose,,,,,,,,,,,END: Step 1: Propose,START: Step 2: Offerings,,,END: Step 2: Offerings,START: Step 3: Schedule,,,END: Step 3: Schedule,START: Step 4: Prereqs,,,END: Step 4: Prereqs,START: Step 5: Submit,,END: Step 5: Submit
+AI #1,Handoff #1,Human #1,Handoff #2,AI #2,Handoff #3,Human #2,Handoff #4,AI #3,Handoff #5,Human #3,Handoff #6,AI #4,Handoff #7,Human #4,Handoff #8,AI #5,Handoff #9,Human #5,Handoff #10,AI #6,Handoff #11,Human #6,Handoff #12,AI #7,Handoff #13,Human #7
+#FFB8FB,#546AD9,#ADCEFF,#7486E0,#FFB8FB,#546AD9,#ADCEFF,#9FABEA,#FFB8FB,#546AD9,#ADCEFF,#2E49D1,#FFB8FB,#546AD9,#FFADBC,#2E49D1,#FFB8FB,#546AD9,#FFF0AD,#2E49D1,#FFB8FB,#546AD9,#00FFEA,#2E49D1,#FFB8FB,#546AD9,#DBADFF
+,#263CAB,,,,#263CAB,,,,#263CAB,,,,#263CAB,,,,#263CAB,#ADFFD5,,,#263CAB,#FFADBC,,,#263CAB,
+
+Legend,Hex
+Black Box,#FFB8FB
+Direction to Check,#546AD9
+Intermediate Product,#263CAB
+Validating the course plan,#ADCEFF
+Specific Request,#7486E0
+General Request,#9FABEA
+Direction to Proceed,#2E49D1
+Decision Making,#FFADBC
+Evaluating the proposed schedule,#FFF0AD
+Reviewing and refining course recommendations,#ADFFD5
+Orienting to Next Step,#00FFEA
+Finalizing the course plan,#DBADFF

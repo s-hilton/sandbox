@@ -34,6 +34,7 @@ def test_example_structure():
     assert wf.counters == {"human": 7, "ai": 7, "handoff": 13}
     assert wf.steps[0].label == "Step 1: Propose" and len(wf.steps) == 5
     assert wf.columns[0].label == "AI #1" and wf.columns[0].cells[0].hex == "#FFB8FB"
+    assert len(wf.warnings) == 1  # the Orienting to Next Step row with no higher-level type
 
 
 def test_groups_never_cross_steps_and_agents_inherit():
@@ -56,19 +57,28 @@ def test_higher_level_task_types():
     assert wf.has_high and not load(HERE / "loose-example.csv").has_high
     high = wf.at_level("high")
     # Blank higher-level cells continue the one above, so each higher-level task is one square
-    assert [x.name for x in high.columns[0].cells] == ["Black Box"]
-    assert high.columns[0].cells[0].tasks == ["Black Box", "Black Box"]
-    assert [(x.name, x.tasks) for x in high.columns[2].cells] == [
-        ("Review AI", ["Cross-Checking Against AI Reasoning", "Pause"]), ("Prompting", ["Drafting Prompt"])]
-    assert wf.columns[2].cells[1].group == "Review AI"
+    assert [(x.name, len(x.tasks)) for x in high.columns[2].cells] == [("Validating the course plan", 17)]
+    assert wf.columns[2].cells[6].group == "Validating the course plan"
+    assert [(x.name, x.hex) for x in high.columns[18].cells] == [
+        ("Evaluating the proposed schedule", "#FFF0AD"), ("Reviewing and refining course recommendations", "#ADFFD5")]
+    # A blank row right after another agent's task has no higher-level type, so it keeps its task type
+    assert [(x.name, x.tasks) for x in high.columns[22].cells] == [
+        ("Orienting to Next Step", ["Orienting to Next Step"]),
+        ("Decision Making", ["Reviewing AI Self-Check Results", "Approving"])]
+    assert any("no higher-level task type" in w for w in wf.warnings)
     # Same column structure, handoffs unchanged, task view untouched
     assert [c.label for c in high.columns] == [c.label for c in wf.columns]
-    assert high.columns[1].cells == wf.columns[1].cells and len(wf.columns[0].cells) == 2
-    # Shared names keep their task-type color; new higher-level names have their own
-    approve = wf.columns[10].cells
-    assert [(x.name, x.hex) for x in high.columns[10].cells] == [("Review AI", "#FFFFFF"), ("Decision Making", "#FFADBC")]
-    assert [x.name for x in approve] == ["Reviewing AI Reasoning", "Approving"]
-    assert high.columns[-1].cells[0].hex == "#FF7B00"  # Submitting Final Plan
+    assert high.columns[1].cells == wf.columns[1].cells and len(wf.columns[2].cells) == 17
+    # Shared names keep their task-type color
+    assert high.columns[0].cells[0].hex == "#FFB8FB"  # Black Box
+
+
+def test_higher_level_matches_browser_export():
+    tabs = make_tabs([load(EXAMPLE), load(HERE / "loose-example.csv", "loose")])
+    for tab, golden in ((tabs[0], "tight-example"), (tabs[-1], "all-workflows")):
+        high = tab_levels(tab)[1]
+        assert file_base(high) == golden + "-high-level"
+        assert tab_csv(high) == (GOLDEN / f"{golden}-high-level-visual.csv").read_bytes().decode()
 
 
 def test_higher_level_header_and_new_column():
@@ -77,7 +87,7 @@ def test_higher_level_header_and_new_column():
                      ",Approving,,,Human\n")
     wf = build_workflow(rows, "l")
     assert wf.has_high and [c.label for c in wf.columns] == ["Human #1", "Handoff #1", "Human #2"]
-    assert any("before the first higher-level" in w for w in wf.warnings)
+    assert any("no higher-level task type" in w for w in wf.warnings)
     high = wf.at_level("high")
     assert [(x.name, x.tasks) for x in high.columns[0].cells] == [("Pause", ["Pause"]),
                                                                   ("Decision Making", ["Approving", "Pause"])]
@@ -90,8 +100,6 @@ def test_exports_both_versions():
     names = [file_base(t) for tab in tabs for t in tab_levels(tab)]
     assert names == ["tight-example", "tight-example-high-level", "loose", "all-workflows",
                      "all-workflows-high-level"]
-    high_csv = tab_csv(tab_levels(tabs[0])[1])
-    assert "Decision Making,#FFADBC" in high_csv and "Approving" not in high_csv
 
 
 def test_png_renders():

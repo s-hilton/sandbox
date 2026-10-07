@@ -218,7 +218,7 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
 <div class="tip" id="tip" role="tooltip" hidden></div>
 
 <script>
-const EXAMPLE_CSV = "Tight,Task Type,Macro Task,Handoff Type,Agent\nStep 1: Propose,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Cross-Checking Against AI Reasoning,Review AI,,Human\n,Pause,,,Human\n,Drafting Prompt,Prompting,,Human\n,,,Specific Request,\n,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Drafting Prompt,Prompting,,Human\n,Cross-Checking Against AI Reasoning,Review AI Course,,\n,Cross-Checking Credit Load,,,\n,Pause,Prompting,,Human\n,Drafting Prompt,,,Human\n,,,General Request,\n,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Reviewing AI Reasoning,Review AI,,Human\n,Approving,Decision Making,,Human\n,,,Direction to Proceed,\nStep 2: Offerings,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Approving,Decision Making,,Human\n,,,Direction to Proceed,\nStep 3: Schedule,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Reviewing Proposed Calendar,Review AI,,Human\n,Approving,Decision Making,,Human\n,,,Direction to Proceed,\nStep 4: Prereqs,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Approving,Decision Making,,Human\n,,,Direction to Proceed,\nStep 5: Submit,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Submitting Final Plan,Submitting Final Plan,,Human\n,,,,\n";
+const EXAMPLE_CSV = "Tight,Task Type,Macro Task,Handoff Type,Agent\nStep 1: Propose,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Cross-Checking Prerequisites,Validating the course plan,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Course Availability,,,Human\n,Cross-Checking Course Availability,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Course Availability,,,Human\n,Pause,,,Human\n,Drafting Prompt,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Drafting Prompt,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Drafting Prompt,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Drafting Prompt,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Drafting Prompt,,,Human\n,,,Specific Request,\n,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Cross-Checking Prerequisites,Validating the course plan,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Pause,,,Human\n,Drafting Prompt,,,Human\n,,,General Request,\n,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Cross-Checking Prerequisites,Validating the course plan,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Approving,,,Human\n,,,Direction to Proceed,\nStep 2: Offerings,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Reviewing AI Self-Check Results,Decision Making,,Human\n,Approving,,,Human\n,,,Direction to Proceed,\nStep 3: Schedule,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Reviewing Proposed Calendar,Evaluating the proposed schedule,,Human\n,Reviewing Plan Revisions,Reviewing and refining course recommendations,,Human\n,Orienting to Next Step,,,Human\n,Orienting to Next Step,,,Human\n,Approving,,,Human\n,,,Direction to Proceed,\nStep 4: Prereqs,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Orienting to Next Step,,,Human\n,Reviewing AI Self-Check Results,Decision Making,,Human\n,Approving,,,Human\n,,,Direction to Proceed,\nStep 5: Submit,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Approving,Finalizing the course plan,,Human\n,Submitting Final Plan,,,Human\n";
 
 /* ---------- Color key ---------- */
 const TYPE_GROUPS = [
@@ -311,7 +311,7 @@ function buildWorkflow(rows, name){
     if (!hex) unknown.add(name);
     return {name: CANON.get(key) || name, hex: hex || UNKNOWN_HEX, known: !!hex, tasks: [], group: ""};
   };
-  let highName = "", untyped = 0;
+  let highName = "", highKind = null, untyped = 0;
   entries.forEach(e => {
     const last = columns[columns.length-1];
     const newCol = !last || last.kind !== e.kind || last.step !== e.step;
@@ -323,15 +323,17 @@ function buildWorkflow(rows, name){
     col.cells.push(x);
     if (e.kind === "handoff"){ col.highCells.push(x); return; }
     // A higher-level task type covers the task rows below it until the next one is named.
-    // Blank rows continue it; a new column starts a new square with the same type.
-    highName = e.high || highName;
+    // Blank rows continue it while the agent stays the same (a new column starts a new square
+    // with the same type); a blank row after another agent's task has none of its own.
+    if (e.high || highKind !== e.kind) highName = e.high;
+    highKind = e.kind;
     if (highCol >= 0 && !highName) untyped++;
     if (e.high || newCol || !highName) col.highCells.push(cell(highName || e.name));
     const hx = col.highCells[col.highCells.length-1];
     hx.tasks.push(x.name); x.group = hx.name;
   });
   if (unknown.size) warnings.push(`No color is set for: ${[...unknown].join(", ")}. These show as striped squares and export as ${UNKNOWN_HEX}.`);
-  if (untyped) warnings.push(`${untyped} task ${untyped===1?"row comes":"rows come"} before the first higher-level task type, so ${untyped===1?"it uses its":"they use their"} own task type there.`);
+  if (untyped) warnings.push(`${untyped} task ${untyped===1?"row has":"rows have"} no higher-level task type (blank, with no task by the same agent above), so ${untyped===1?"it uses its":"they use their"} own task type in the higher-level view.`);
 
   const steps = [];
   if (category === "tight"){

@@ -248,7 +248,7 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
     counters = {"human": 0, "ai": 0, "handoff": 0}
     columns: list[Column] = []
     unknown: list[str] = []
-    high_name, untyped = "", 0
+    high_name, high_kind, untyped = "", None, 0
 
     def cell(entry_name: str) -> Cell:
         key = norm(entry_name)
@@ -269,8 +269,11 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
             col.high_cells.append(col.cells[-1])
             continue
         # A higher-level task type covers the task rows below it until the next one is named.
-        # Blank rows continue it; a new column starts a new square with the same type.
-        high_name = high or high_name
+        # Blank rows continue it while the agent stays the same (a new column starts a new square
+        # with the same type); a blank row after another agent's task has none of its own.
+        if high or high_kind != kind:
+            high_name = high
+        high_kind = kind
         if high_col >= 0 and not high_name:
             untyped += 1
         if high or new_col or not high_name:
@@ -282,8 +285,9 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
                         f"and export as {UNKNOWN_HEX}.")
     if untyped:
         one = untyped == 1
-        warnings.append(f"{untyped} task {'row comes' if one else 'rows come'} before the first higher-level "
-                        f"task type, so {'it uses its' if one else 'they use their'} own task type there.")
+        warnings.append(f"{untyped} task {'row has' if one else 'rows have'} no higher-level task type (blank, "
+                        f"with no task by the same agent above), so {'it uses its' if one else 'they use their'} "
+                        f"own task type in the higher-level view.")
 
     steps: list[Step] = []
     if category == "tight":
