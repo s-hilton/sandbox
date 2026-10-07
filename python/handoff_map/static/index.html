@@ -294,6 +294,7 @@ function uniqueName(n, taken){
 }
 async function handleFiles(list){
   if (!list.length) return;
+  dropExample();
   const taken = new Set(), items = [], errors = [];
   for (const file of list){
     try{
@@ -562,10 +563,12 @@ async function downloadZip(){
 })();
 
 /* ---------- Events ---------- */
+// The example shown on opening steps aside once you upload your own files
+function dropExample(){ state.files = state.files.filter(f => !f.example); }
 async function loadExample(){
   try{
     const out = await (await api("/api/example")).json();
-    out.workflows.forEach(wf => { wf.name = uniqueName(wf.name, new Set()); state.files.push(wf); state.active = wf.id; });
+    out.workflows.forEach(wf => { wf.name = uniqueName(wf.name, new Set()); wf.example = true; state.files.push(wf); state.active = wf.id; });
   } catch(err){ setStatus(`Could not load the example (${err.message}).`, "bad"); }
   render();
 }

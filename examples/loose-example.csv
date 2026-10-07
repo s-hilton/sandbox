@@ -1,0 +1,68 @@
+Loose,Task Type,Macro Task,Handoff Type,Agent
+,Black Box,Black Box,,AI
+,Black Box,,,AI
+,,,Direction to Check,
+,,,Complete Product,
+,Reviewing AI Reasoning,Reviewing and refining course recommendations,,Human
+,Consulting Degree Progress Record,Validating the course plan,,Human
+,Consulting Course Sequence Guide,,,Human
+,Reviewing Proposed Courses,,,Human
+,Reviewing AI Self-Check Results,,,Human
+,Assess Available Resources,,,Human
+,Consulting Course Sequence Guide,,,Human
+,Cross-Checking Against Degree Progress,,,Human
+,Consulting Degree Progress Record,,,Human
+,Consulting Degree Progress Record,,,Human
+,Cross-Checking Against Degree Progress,,,Human
+,Consulting Course Sequence Guide,,,Human
+,Consulting Course Sequence Guide,,,Human
+,Consulting Degree Progress Record,,,Human
+,Cross-Checking Against Recommended Sequence,,,Human
+,Cross-Checking Against Recommended Sequence,,,Human
+,Pause,,,Human
+,Orienting to Next Step,,,Human
+,Drafting Prompt,,,Human
+,,,Specific Request,
+,Black Box,Black Box,,AI
+,Black Box,,,AI
+,,,Direction to Check,
+,,,Complete Product,
+,Reviewing Proposed Courses,Reviewing and refining course recommendations,,Human
+,Cross-Checking Against Recommended Sequence,Validating the course plan,,Human
+,Cross-Checking Against Degree Progress,,,Human
+,Cross-Checking Against Recommended Sequence,,,Human
+,Cross-Checking Against Degree Progress,Validating the course plan,,Human
+,Cross-Checking Prerequisites,,,Human
+,Cross-Checking Prerequisites,,,Human
+,Cross-Checking Against Recommended Sequence,,,Human
+,Consulting Degree Progress Record,,,Human
+,Consulting Course Sequence Guide,,,Human
+,Consulting Course Sequence Guide,,,Human
+,Consulting Degree Progress Record,,,Human
+,Consulting Course Sequence Guide,,,Human
+,Pause,,,Human
+,Drafting Prompt,,,Human
+,,,Specific Request,
+,Black Box,Black Box,,AI
+,Black Box,,,AI
+,,,Direction to Check,
+,,,Complete Product,
+,Reviewing Proposed Calendar,Evaluating the proposed schedule,,Human
+,Consulting Course Sequence Guide,Validating the course plan,,Human
+,Cross-Checking Against Recommended Sequence,,,Human
+,Pause,,,Human
+,Drafting Prompt,,,Human
+,Reviewing AI Reasoning,,,Human
+,Pause,,,Human
+,Drafting Prompt,,,Human
+,Cross-Checking Against Recommended Sequence,,,Human
+,Drafting Prompt,,,Human
+,,,Specific Request,
+,Black Box,Black Box,,AI
+,Black Box,,,AI
+,,,Direction to Check,
+,,,Complete Product,
+,Reviewing Proposed Calendar,Evaluating the proposed schedule,,Human
+,Submitting Final Plan,Validating the course plan,,Human
+,Cross-Checking Against Recommended Sequence,,,Human
+,Submitting Final Plan,Finalizing the course plan,,Human

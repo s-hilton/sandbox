@@ -218,7 +218,7 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
 <div class="tip" id="tip" role="tooltip" hidden></div>
 
 <script>
-const EXAMPLE_CSV = "Tight,Task Type,Macro Task,Handoff Type,Agent\nStep 1: Propose,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Cross-Checking Prerequisites,Validating the course plan,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Course Availability,,,Human\n,Cross-Checking Course Availability,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Course Availability,,,Human\n,Pause,,,Human\n,Drafting Prompt,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Drafting Prompt,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Drafting Prompt,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Drafting Prompt,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Drafting Prompt,,,Human\n,,,Specific Request,\n,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Cross-Checking Prerequisites,Validating the course plan,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Pause,,,Human\n,Drafting Prompt,,,Human\n,,,General Request,\n,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Cross-Checking Prerequisites,Validating the course plan,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Approving,,,Human\n,,,Direction to Proceed,\nStep 2: Offerings,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Reviewing AI Self-Check Results,Decision Making,,Human\n,Approving,,,Human\n,,,Direction to Proceed,\nStep 3: Schedule,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Reviewing Proposed Calendar,Evaluating the proposed schedule,,Human\n,Reviewing Plan Revisions,Reviewing and refining course recommendations,,Human\n,Orienting to Next Step,,,Human\n,Orienting to Next Step,,,Human\n,Approving,,,Human\n,,,Direction to Proceed,\nStep 4: Prereqs,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Orienting to Next Step,,,Human\n,Reviewing AI Self-Check Results,Decision Making,,Human\n,Approving,,,Human\n,,,Direction to Proceed,\nStep 5: Submit,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Approving,Finalizing the course plan,,Human\n,Submitting Final Plan,,,Human\n";
+const EXAMPLE_CSV = "Loose,Task Type,Macro Task,Handoff Type,Agent\n,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Complete Product,\n,Reviewing AI Reasoning,Reviewing and refining course recommendations,,Human\n,Consulting Degree Progress Record,Validating the course plan,,Human\n,Consulting Course Sequence Guide,,,Human\n,Reviewing Proposed Courses,,,Human\n,Reviewing AI Self-Check Results,,,Human\n,Assess Available Resources,,,Human\n,Consulting Course Sequence Guide,,,Human\n,Cross-Checking Against Degree Progress,,,Human\n,Consulting Degree Progress Record,,,Human\n,Consulting Degree Progress Record,,,Human\n,Cross-Checking Against Degree Progress,,,Human\n,Consulting Course Sequence Guide,,,Human\n,Consulting Course Sequence Guide,,,Human\n,Consulting Degree Progress Record,,,Human\n,Cross-Checking Against Recommended Sequence,,,Human\n,Cross-Checking Against Recommended Sequence,,,Human\n,Pause,,,Human\n,Orienting to Next Step,,,Human\n,Drafting Prompt,,,Human\n,,,Specific Request,\n,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Complete Product,\n,Reviewing Proposed Courses,Reviewing and refining course recommendations,,Human\n,Cross-Checking Against Recommended Sequence,Validating the course plan,,Human\n,Cross-Checking Against Degree Progress,,,Human\n,Cross-Checking Against Recommended Sequence,,,Human\n,Cross-Checking Against Degree Progress,Validating the course plan,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Prerequisites,,,Human\n,Cross-Checking Against Recommended Sequence,,,Human\n,Consulting Degree Progress Record,,,Human\n,Consulting Course Sequence Guide,,,Human\n,Consulting Course Sequence Guide,,,Human\n,Consulting Degree Progress Record,,,Human\n,Consulting Course Sequence Guide,,,Human\n,Pause,,,Human\n,Drafting Prompt,,,Human\n,,,Specific Request,\n,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Complete Product,\n,Reviewing Proposed Calendar,Evaluating the proposed schedule,,Human\n,Consulting Course Sequence Guide,Validating the course plan,,Human\n,Cross-Checking Against Recommended Sequence,,,Human\n,Pause,,,Human\n,Drafting Prompt,,,Human\n,Reviewing AI Reasoning,,,Human\n,Pause,,,Human\n,Drafting Prompt,,,Human\n,Cross-Checking Against Recommended Sequence,,,Human\n,Drafting Prompt,,,Human\n,,,Specific Request,\n,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Complete Product,\n,Reviewing Proposed Calendar,Evaluating the proposed schedule,,Human\n,Submitting Final Plan,Validating the course plan,,Human\n,Cross-Checking Against Recommended Sequence,,,Human\n,Submitting Final Plan,Finalizing the course plan,,Human\n";
 
 /* ---------- Color key ---------- */
 const TYPE_GROUPS = [
@@ -366,6 +366,8 @@ function addWorkflow(rows, fileName){
   state.active = wf.id;
 }
 async function handleFiles(list){
+  if (!list.length) return;
+  dropExample();
   const errors = [];
   for (const file of list){
     try{
@@ -791,14 +793,16 @@ async function downloadZip(){
 })();
 
 /* ---------- Events ---------- */
-function loadExample(){ addWorkflow(parseCSV(EXAMPLE_CSV), "Example transcript.csv"); render(); }
+function loadExample(){ addWorkflow(parseCSV(EXAMPLE_CSV), "Example transcript.csv"); state.files[state.files.length-1].example = true; render(); }
+// The example shown on opening steps aside once you upload your own files
+function dropExample(){ state.files = state.files.filter(f => !f.example); }
 function removeFile(id){ state.files = state.files.filter(f => f.id !== id); if (state.active === id) state.active = null; render(); }
 
 $("file-input").addEventListener("change", e => { handleFiles([...e.target.files]); e.target.value = ""; });
 const drop = $("drop");
 ["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
 ["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
-drop.addEventListener("drop", e => handleFiles([...e.dataTransfer.files]));
+drop.addEventListener("drop", e => { e.stopPropagation(); handleFiles([...e.dataTransfer.files]); });  // the window drop handler would add it again
 window.addEventListener("dragover", e => e.preventDefault());
 window.addEventListener("drop", e => { e.preventDefault(); if (e.dataTransfer?.files?.length) handleFiles([...e.dataTransfer.files]); });
 

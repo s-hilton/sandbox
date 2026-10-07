@@ -18,7 +18,7 @@ from .core import LEVELS, TYPE_GROUPS, Tab, Workflow, file_base, load_workflow, 
 from .render import tab_png
 
 STATIC = Path(__file__).resolve().parent / "static"
-EXAMPLE = Path(__file__).resolve().parents[2] / "examples" / "tight-example.csv"
+EXAMPLE = Path(__file__).resolve().parents[2] / "examples" / "loose-example.csv"
 MAX_BODY = 50 * 1024 * 1024
 
 

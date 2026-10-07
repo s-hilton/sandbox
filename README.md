@@ -7,7 +7,7 @@ A single-page dashboard (`index.html`) that turns workflow transcript CSVs into 
 
 ## Input format
 
-Cell A1 says `Tight` or `Loose`. The header row names `Task Type`, an optional higher-level task type column (headed e.g. `Macro Task`), `Handoff Type` and `Agent`. For tight workflows, step labels (e.g. `Step 1: Propose`) go in column A on the first row of each step. See `examples/tight-example.csv`.
+Cell A1 says `Tight` or `Loose`. The header row names `Task Type`, an optional higher-level task type column (headed e.g. `Macro Task`), `Handoff Type` and `Agent`. For tight workflows, step labels (e.g. `Step 1: Propose`) go in column A on the first row of each step. See `examples/tight-example.csv` and `examples/loose-example.csv` (the example the dashboard opens with).
 
 ## Higher-level task types
 
