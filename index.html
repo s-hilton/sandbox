@@ -366,6 +366,8 @@ function addWorkflow(rows, fileName){
   state.active = wf.id;
 }
 async function handleFiles(list){
+  if (!list.length) return;
+  dropExample();
   const errors = [];
   for (const file of list){
     try{
@@ -791,14 +793,16 @@ async function downloadZip(){
 })();
 
 /* ---------- Events ---------- */
-function loadExample(){ addWorkflow(parseCSV(EXAMPLE_CSV), "Example transcript.csv"); render(); }
+function loadExample(){ addWorkflow(parseCSV(EXAMPLE_CSV), "Example transcript.csv"); state.files[state.files.length-1].example = true; render(); }
+// The example shown on opening steps aside once you upload your own files
+function dropExample(){ state.files = state.files.filter(f => !f.example); }
 function removeFile(id){ state.files = state.files.filter(f => f.id !== id); if (state.active === id) state.active = null; render(); }
 
 $("file-input").addEventListener("change", e => { handleFiles([...e.target.files]); e.target.value = ""; });
 const drop = $("drop");
 ["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
 ["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
-drop.addEventListener("drop", e => handleFiles([...e.dataTransfer.files]));
+drop.addEventListener("drop", e => { e.stopPropagation(); handleFiles([...e.dataTransfer.files]); });  // the window drop handler would add it again
 window.addEventListener("dragover", e => e.preventDefault());
 window.addEventListener("drop", e => { e.preventDefault(); if (e.dataTransfer?.files?.length) handleFiles([...e.dataTransfer.files]); });
 
