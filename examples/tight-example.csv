@@ -1,51 +1,51 @@
-Tight,Task Type,Handoff Type,Agent
-Step 1: Propose,Black Box,,AI
-,Black Box,,AI
-,,Direction to Check,
-,,Intermediate Product,
-,Cross-Checking Against AI Reasoning,,Human
-,Pause,,Human
-,Drafting Prompt,,Human
-,,Specific Request,
-,Black Box,,AI
-,Black Box,,AI
-,,Direction to Check,
-,,Intermediate Product,
-,Drafting Prompt,,Human
-,Cross-Checking Against AI Reasoning,,
-,Cross-Checking Credit Load,,
-,Pause,,Human
-,Drafting Prompt,,Human
-,,General Request,
-,Black Box,,AI
-,Black Box,,AI
-,,Direction to Check,
-,,Intermediate Product,
-,Reviewing AI Reasoning,,Human
-,Approving,,Human
-,,Direction to Proceed,
-Step 2: Offerings,Black Box,,AI
-,Black Box,,AI
-,,Direction to Check,
-,,Intermediate Product,
-,Approving,,Human
-,,Direction to Proceed,
-Step 3: Schedule,Black Box,,AI
-,Black Box,,AI
-,,Direction to Check,
-,,Intermediate Product,
-,Reviewing Proposed Calendar,,Human
-,Approving,,Human
-,,Direction to Proceed,
-Step 4: Prereqs,Black Box,,AI
-,Black Box,,AI
-,,Direction to Check,
-,,Intermediate Product,
-,Approving,,Human
-,,Direction to Proceed,
-Step 5: Submit,Black Box,,AI
-,Black Box,,AI
-,,Direction to Check,
-,,Intermediate Product,
-,Submitting Final Plan,,Human
-,,,
+Tight,Task Type,Macro Task,Handoff Type,Agent
+Step 1: Propose,Black Box,Black Box,,AI
+,Black Box,,,AI
+,,,Direction to Check,
+,,,Intermediate Product,
+,Cross-Checking Against AI Reasoning,Review AI,,Human
+,Pause,,,Human
+,Drafting Prompt,Prompting,,Human
+,,,Specific Request,
+,Black Box,Black Box,,AI
+,Black Box,,,AI
+,,,Direction to Check,
+,,,Intermediate Product,
+,Drafting Prompt,Prompting,,Human
+,Cross-Checking Against AI Reasoning,Review AI Course,,
+,Cross-Checking Credit Load,,,
+,Pause,Prompting,,Human
+,Drafting Prompt,,,Human
+,,,General Request,
+,Black Box,Black Box,,AI
+,Black Box,,,AI
+,,,Direction to Check,
+,,,Intermediate Product,
+,Reviewing AI Reasoning,Review AI,,Human
+,Approving,Decision Making,,Human
+,,,Direction to Proceed,
+Step 2: Offerings,Black Box,Black Box,,AI
+,Black Box,,,AI
+,,,Direction to Check,
+,,,Intermediate Product,
+,Approving,Decision Making,,Human
+,,,Direction to Proceed,
+Step 3: Schedule,Black Box,Black Box,,AI
+,Black Box,,,AI
+,,,Direction to Check,
+,,,Intermediate Product,
+,Reviewing Proposed Calendar,Review AI,,Human
+,Approving,Decision Making,,Human
+,,,Direction to Proceed,
+Step 4: Prereqs,Black Box,Black Box,,AI
+,Black Box,,,AI
+,,,Direction to Check,
+,,,Intermediate Product,
+,Approving,Decision Making,,Human
+,,,Direction to Proceed,
+Step 5: Submit,Black Box,Black Box,,AI
+,Black Box,,,AI
+,,,Direction to Check,
+,,,Intermediate Product,
+,Submitting Final Plan,Submitting Final Plan,,Human
+,,,,

@@ -126,6 +126,14 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
 .sq.unknown{background:repeating-linear-gradient(45deg,#fff 0 3px,#bbb 3px 5px)!important}
 
 .legend{display:flex;flex-wrap:wrap;gap:6px 16px}
+/* Task types / higher-level task types switch on each map */
+.block-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.block-head .block-title{margin:0}
+.level{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden;flex:none}
+.level button{border:0;background:var(--panel);padding:3px 10px;font-size:12px;cursor:pointer;color:var(--muted)}
+.level button+button{border-left:1px solid var(--line-strong)}
+.level button:hover{color:var(--ink)}
+.level button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .legend .key-item code{margin-left:0}
 .hint{color:var(--muted);font-size:12.5px;margin:0}
 
@@ -150,7 +158,7 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
         <h3>Upload transcripts</h3>
         <label class="drop" id="drop" for="file-input">
           <strong>Drop CSV files here</strong>
-          <p>The first cell names the workflow category (Tight or Loose), followed by Task Type, Handoff Type and Agent columns. Tight workflows list step labels down the first column. Excel files (.xlsx) also work.</p>
+          <p>The first cell names the workflow category (Tight or Loose), followed by Task Type, Higher-Level Task Type (optional, e.g. “Macro Task”), Handoff Type and Agent columns. Tight workflows list step labels down the first column. Excel files (.xlsx) also work.</p>
           <span class="row" style="margin-top:6px">
             <span class="btn primary" role="button">Choose files</span>
             <span class="hint">Each file opens in its own tab.</span>
@@ -172,7 +180,7 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
         <div class="dl-grid">
           <div class="dl-card">
             <strong id="dl-current-title">Current tab</strong>
-            <p>The CSV holds one column per group, with each square stored as its hex color code. The PNG is the picture shown on the right.</p>
+            <p>The CSV holds one column per group, with each square stored as its hex color code. The PNG is the picture shown on the right. Workflows with higher-level task types save both versions (the second ends in <code>-high-level</code>).</p>
             <div class="row">
               <button class="btn" id="dl-csv" type="button">Download CSV</button>
               <button class="btn" id="dl-png" type="button">Download PNG</button>
@@ -192,7 +200,7 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
 
       <section>
         <details class="key" id="color-key">
-          <summary>Color key · 26 task and handoff types</summary>
+          <summary>Color key · 31 task, higher-level task and handoff types</summary>
           <div class="key-list" id="key-list"></div>
         </details>
       </section>
@@ -210,7 +218,7 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
 <div class="tip" id="tip" role="tooltip" hidden></div>
 
 <script>
-const EXAMPLE_CSV = "Tight,Task Type,Handoff Type,Agent\nStep 1: Propose,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Cross-Checking Against AI Reasoning,,Human\n,Pause,,Human\n,Drafting Prompt,,Human\n,,Specific Request,\n,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Drafting Prompt,,Human\n,Cross-Checking Against AI Reasoning,,\n,Cross-Checking Credit Load,,\n,Pause,,Human\n,Drafting Prompt,,Human\n,,General Request,\n,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Reviewing AI Reasoning,,Human\n,Approving,,Human\n,,Direction to Proceed,\nStep 2: Offerings,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Approving,,Human\n,,Direction to Proceed,\nStep 3: Schedule,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Reviewing Proposed Calendar,,Human\n,Approving,,Human\n,,Direction to Proceed,\nStep 4: Prereqs,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Approving,,Human\n,,Direction to Proceed,\nStep 5: Submit,Black Box,,AI\n,Black Box,,AI\n,,Direction to Check,\n,,Intermediate Product,\n,Submitting Final Plan,,Human\n,,,\n";
+const EXAMPLE_CSV = "Tight,Task Type,Macro Task,Handoff Type,Agent\nStep 1: Propose,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Cross-Checking Against AI Reasoning,Review AI,,Human\n,Pause,,,Human\n,Drafting Prompt,Prompting,,Human\n,,,Specific Request,\n,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Drafting Prompt,Prompting,,Human\n,Cross-Checking Against AI Reasoning,Review AI Course,,\n,Cross-Checking Credit Load,,,\n,Pause,Prompting,,Human\n,Drafting Prompt,,,Human\n,,,General Request,\n,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Reviewing AI Reasoning,Review AI,,Human\n,Approving,Decision Making,,Human\n,,,Direction to Proceed,\nStep 2: Offerings,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Approving,Decision Making,,Human\n,,,Direction to Proceed,\nStep 3: Schedule,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Reviewing Proposed Calendar,Review AI,,Human\n,Approving,Decision Making,,Human\n,,,Direction to Proceed,\nStep 4: Prereqs,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Approving,Decision Making,,Human\n,,,Direction to Proceed,\nStep 5: Submit,Black Box,Black Box,,AI\n,Black Box,,,AI\n,,,Direction to Check,\n,,,Intermediate Product,\n,Submitting Final Plan,Submitting Final Plan,,Human\n,,,,\n";
 
 /* ---------- Color key ---------- */
 const TYPE_GROUPS = [
@@ -220,12 +228,15 @@ const TYPE_GROUPS = [
   ["Cross-checking", [["Cross-Checking Prerequisites","D8FFB8"],["Cross-Checking Course Availability","A5FF5C"],["Cross-Checking Credit Load","8CFF2E"],["Cross-Checking Against AI Reasoning","73FF00"],["Cross-Checking Against Degree Progress","5ED100"],["Cross-Checking Against Recommended Sequence","357500"]]],
   ["Other human tasks", [["Pause","C4C4C4"],["Drafting Prompt","525252"],["Approving","FFC28A"],["Submitting Final Plan","FF7B00"],["Orienting to Next Step","00FFEA"]]],
   ["Handoffs", [["General Request","9FABEA"],["Specific Request","7486E0"],["Direction to Check","546AD9"],["Direction to Proceed","2E49D1"],["Intermediate Product","263CAB"],["Complete Product","152260"]]],
+  // Higher-level task types. A name that is also a task type above (Black Box, Submitting Final Plan) keeps that color.
+  ["Higher-level tasks", [["Reviewing and refining course recommendations","ADFFD5"],["Validating the course plan","ADCEFF"],["Evaluating the proposed schedule","FFF0AD"],["Decision Making","FFADBC"],["Finalizing the course plan","DBADFF"]]],
 ];
 const norm = s => String(s ?? "").trim().replace(/\s+/g," ").toLowerCase().replace(/[‐-―]/g,"-");
 const COLORS = new Map();
 const CANON = new Map();
 TYPE_GROUPS.forEach(([,items]) => items.forEach(([n,h]) => { COLORS.set(norm(n), "#"+h); CANON.set(norm(n), n); }));
 const UNKNOWN_HEX = "#FFFFFF";
+const HIGH_HEADER = /macro|high|parent/;  // header of the higher-level task type column
 
 /* ---------- Parsing ---------- */
 function parseCSV(text){
@@ -256,9 +267,11 @@ function buildWorkflow(rows, name){
   rows = rows.map(r => r.map(v => v == null ? "" : String(v).trim()));
   const header = rows[0] || [];
   const catRaw = norm(header[0]);
-  const findCol = (re, fallback) => { const i = header.findIndex(h => re.test(norm(h))); return i >= 0 ? i : fallback; };
+  // The higher-level task type column (e.g. "Macro Task") sits between Task Type and Handoff Type
+  const highCol = header.findIndex((h, i) => i && HIGH_HEADER.test(norm(h)));
+  const findCol = (re, fallback) => { const i = header.findIndex((h, j) => j !== highCol && re.test(norm(h))); return i >= 0 ? i : fallback; };
   const taskCol = findCol(/task/, 1), handCol = findCol(/hand/, 2), agentCol = findCol(/agent/, 3);
-  if (!header.some(h => /task/.test(norm(h)))) warnings.push("No “Task Type” header found, so columns B, C and D were read as Task Type, Handoff Type and Agent.");
+  if (!header.some((h, i) => i !== highCol && /task/.test(norm(h)))) warnings.push("No “Task Type” header found, so columns B, C and D were read as Task Type, Handoff Type and Agent.");
 
   const hasStepLabels = rows.slice(1).some(r => (r[0]||"") !== "");
   let category;
@@ -281,9 +294,9 @@ function buildWorkflow(rows, name){
       else if (lastAgent){ kind = lastAgent; inherited++; }
       else { kind = "human"; inherited++; }
       lastAgent = kind;
-      entries.push({kind, name: task, step: stepIdx});
+      entries.push({kind, name: task, step: stepIdx, high: highCol >= 0 ? (r[highCol] || "") : ""});
     }
-    if (hand) entries.push({kind: "handoff", name: hand, step: stepIdx});
+    if (hand) entries.push({kind: "handoff", name: hand, step: stepIdx, high: ""});
   });
   if (inherited) warnings.push(`${inherited} task ${inherited===1?"row has":"rows have"} no agent, so ${inherited===1?"it was":"they were"} kept with the agent of the task above.`);
   if (category === "tight" && !stepLabels.length) warnings.push("Marked Tight but no step labels were found in the first column.");
@@ -293,18 +306,32 @@ function buildWorkflow(rows, name){
   const counters = {human:0, ai:0, handoff:0};
   const LABEL = {human:"Human", ai:"AI", handoff:"Handoff"};
   const columns = [];
+  const cell = name => {
+    const key = norm(name), hex = COLORS.get(key);
+    if (!hex) unknown.add(name);
+    return {name: CANON.get(key) || name, hex: hex || UNKNOWN_HEX, known: !!hex, tasks: [], group: ""};
+  };
+  let highName = "", untyped = 0;
   entries.forEach(e => {
     const last = columns[columns.length-1];
-    if (!last || last.kind !== e.kind || last.step !== e.step){
+    const newCol = !last || last.kind !== e.kind || last.step !== e.step;
+    if (newCol){
       counters[e.kind]++;
-      columns.push({kind: e.kind, step: e.step, label: `${LABEL[e.kind]} #${counters[e.kind]}`, cells: []});
+      columns.push({kind: e.kind, step: e.step, label: `${LABEL[e.kind]} #${counters[e.kind]}`, cells: [], highCells: []});
     }
-    const key = norm(e.name);
-    const hex = COLORS.get(key);
-    if (!hex) unknown.add(e.name);
-    columns[columns.length-1].cells.push({name: CANON.get(key) || e.name, hex: hex || UNKNOWN_HEX, known: !!hex});
+    const col = columns[columns.length-1], x = cell(e.name);
+    col.cells.push(x);
+    if (e.kind === "handoff"){ col.highCells.push(x); return; }
+    // A higher-level task type covers the task rows below it until the next one is named.
+    // Blank rows continue it; a new column starts a new square with the same type.
+    highName = e.high || highName;
+    if (highCol >= 0 && !highName) untyped++;
+    if (e.high || newCol || !highName) col.highCells.push(cell(highName || e.name));
+    const hx = col.highCells[col.highCells.length-1];
+    hx.tasks.push(x.name); x.group = hx.name;
   });
   if (unknown.size) warnings.push(`No color is set for: ${[...unknown].join(", ")}. These show as striped squares and export as ${UNKNOWN_HEX}.`);
+  if (untyped) warnings.push(`${untyped} task ${untyped===1?"row comes":"rows come"} before the first higher-level task type, so ${untyped===1?"it uses its":"they use their"} own task type there.`);
 
   const steps = [];
   if (category === "tight"){
@@ -315,11 +342,12 @@ function buildWorkflow(rows, name){
     });
   }
   return {id: "w" + Math.random().toString(36).slice(2,9), name, category, columns, steps, warnings, counters,
-          rowsMax: Math.max(0, ...columns.map(c => c.cells.length))};
+          hasHigh: highCol >= 0, rowsMax: Math.max(0, ...columns.map(c => c.cells.length)),
+          highRowsMax: Math.max(0, ...columns.map(c => c.highCells.length))};
 }
 
 /* ---------- State ---------- */
-const state = {files: [], active: null};
+const state = {files: [], active: null, levels: {}};
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const baseName = n => n.replace(/\.(csv|xlsx|xls)$/i, "");
@@ -364,6 +392,14 @@ function currentTab(){ const t = tabs(); return t.find(x => x.id === state.activ
 function groupsOf(tab){
   return ["tight","loose"].map(cat => ({cat, files: tab.files.filter(f => f.category === cat)})).filter(g => g.files.length);
 }
+/* Each map shows task types ("task") or higher-level task types ("high"), switched per map */
+const levelKey = (tab, f) => `${tab.id}:${f.id}`;
+const levelOf = (tab, f) => f.hasHigh && state.levels[levelKey(tab, f)] === "high" ? "high" : "task";
+const view = (f, level) => level === "high" && f.hasHigh
+  ? {...f, level, rowsMax: f.highRowsMax, columns: f.columns.map(c => ({...c, cells: c.highCells}))}
+  : {...f, level: "task"};
+const levelsOf = tab => tab.files.some(f => f.hasHigh) ? ["task", "high"] : ["task"];
+const tabAt = (tab, level) => ({...tab, level, files: tab.files.map(f => view(f, level))});
 function legendOf(files){
   const seen = new Map();
   files.forEach(f => f.columns.forEach(c => c.cells.forEach(x => { if (!seen.has(x.name)) seen.set(x.name, x); })));
@@ -401,6 +437,14 @@ function renderTabs(t){
     </button>`).join("");
 }
 
+function levelHTML(tab, f){
+  if (!f.hasHigh) return "";
+  const lv = levelOf(tab, f), key = esc(levelKey(tab, f));
+  return `<div class="level" role="group" aria-label="Square colors for ${esc(f.name)}">
+    <button type="button" data-level="task" data-key="${key}" aria-pressed="${lv === "task"}">Task types</button>
+    <button type="button" data-level="high" data-key="${key}" aria-pressed="${lv === "high"}">Higher-level task types</button></div>`;
+}
+
 function tableHTML(f){
   let h = `<table class="viz"><tbody>`;
   if (f.category === "tight" && f.steps.length){
@@ -418,7 +462,8 @@ function tableHTML(f){
   for (let r = 0; r < f.rowsMax; r++){
     h += `<tr>${f.columns.map((c, ci) => { const x = c.cells[r]; if (!x) return `<td></td>`;
       const st = f.steps.find(s => ci >= s.start && ci <= s.end);
-      return `<td class="hit" tabindex="0" aria-label="${esc(x.name)}, ${c.label}" data-name="${esc(x.name)}" data-hex="${x.hex}" data-known="${x.known}" data-kind="${c.kind}" data-col="${c.label}" data-pos="${r + 1} of ${c.cells.length}" data-step="${st ? esc(st.label) : ""}"><span class="sq ${x.known ? "" : "unknown"}" style="background:${x.hex}"></span></td>`; }).join("")}</tr>`;
+      const extra = f.level === "high" ? (x.tasks.length ? `Includes: ${x.tasks.join(", ")}` : "") : (f.hasHigh && x.group ? `Higher-level: ${x.group}` : "");
+      return `<td class="hit" tabindex="0" aria-label="${esc(x.name)}, ${c.label}" data-name="${esc(x.name)}" data-extra="${esc(extra)}" data-hex="${x.hex}" data-known="${x.known}" data-kind="${c.kind}" data-col="${c.label}" data-pos="${r + 1} of ${c.cells.length}" data-step="${st ? esc(st.label) : ""}"><span class="sq ${x.known ? "" : "unknown"}" style="background:${x.hex}"></span></td>`; }).join("")}</tr>`;
   }
   return h + `</tbody></table>`;
 }
@@ -439,9 +484,9 @@ function renderResults(){
   if (tab.id === "all"){
     body = `<div class="sheet-row stack">${groupsOf(tab).map(g => `
       <div class="group"><div class="group-label ${g.cat}">${g.cat} · ${g.files.length}</div>
-        <div class="group-body">${g.files.map(f => `<div><div class="block-title">${esc(f.name)}</div>${tableHTML(f)}</div>`).join("")}</div>
+        <div class="group-body">${g.files.map(f => `<div><div class="block-head"><div class="block-title">${esc(f.name)}</div>${levelHTML(tab, f)}</div>${tableHTML(view(f, levelOf(tab, f)))}</div>`).join("")}</div>
       </div>`).join("")}</div>`;
-  } else body = `<div class="sheet-row">${tableHTML(files[0])}</div>`;
+  } else body = `${files[0].hasHigh ? `<div class="block-head">${levelHTML(tab, files[0])}</div>` : ""}<div class="sheet-row">${tableHTML(view(files[0], levelOf(tab, files[0])))}</div>`;
   const f0 = files[0];
   el.innerHTML = `
     <div class="res-head">
@@ -458,20 +503,21 @@ function renderResults(){
         </div>
       </div>
       <div class="row">
-        <button class="btn small" type="button" data-dl="csv">CSV</button>
-        <button class="btn small" type="button" data-dl="png">PNG</button>
+        <button class="btn small" type="button" data-dl="csv">CSV${levelsOf(tab).length > 1 ? " ×2" : ""}</button>
+        <button class="btn small" type="button" data-dl="png">PNG${levelsOf(tab).length > 1 ? " ×2" : ""}</button>
       </div>
     </div>
     <div class="sheet-wrap">${body}</div>
-    <div><h3 class="eyebrow" style="margin:0 0 8px">Legend</h3>${legendHTML(legendOf(files))}</div>
-    <p class="hint">Hover over a square, or tap it on a touch screen, to see its task or handoff type.</p>`;
+    <div><h3 class="eyebrow" style="margin:0 0 8px">Legend</h3>${legendHTML(legendOf(files.map(f => view(f, levelOf(tab, f)))))}</div>
+    <p class="hint">Hover over a square, or tap it on a touch screen, to see its task or handoff type.${files.some(f => f.hasHigh) ? " Switch between task types and higher-level task types above each map. Downloads include both versions." : ""}</p>`;
 }
 
 function renderDownloadLabels(){
   const tab = currentTab(), t = tabs();
   $("dl-current-title").textContent = tab ? `Current tab · ${tab.title}` : "Current tab";
   ["dl-csv","dl-png","dl-all","dl-zip"].forEach(id => $(id).disabled = !tab);
-  $("dl-all-desc").textContent = t.length ? `Saves ${t.length * 2} files: a separate CSV and PNG for each of the ${t.length} ${t.length === 1 ? "tab" : "tabs"}.` : "Saves a separate CSV and PNG for each tab.";
+  const n = t.reduce((a, x) => a + levelsOf(x).length * 2, 0), both = t.some(x => levelsOf(x).length > 1);
+  $("dl-all-desc").textContent = t.length ? `Saves ${n} files: a separate CSV and PNG for each of the ${t.length} ${t.length === 1 ? "tab" : "tabs"}${both ? ", for task types and for higher-level task types" : ""}.` : "Saves a separate CSV and PNG for each tab.";
 }
 
 function renderKey(){
@@ -566,7 +612,8 @@ function tabPNG(tab){
   c.fillStyle = "#ffffff"; c.fillRect(0, 0, W, H);
   c.textBaseline = "middle";
   const heading = multi ? "All workflows" : tab.title;
-  const sub = multi ? `${tab.files.length} workflows · stacked, tight first` : `${tab.files[0].category.toUpperCase()} WORKFLOW`;
+  const sub = (multi ? `${tab.files.length} workflows · stacked, tight first` : `${tab.files[0].category.toUpperCase()} WORKFLOW`) +
+    (tab.level === "high" ? " · HIGHER-LEVEL TASK TYPES" : "");
   c.fillStyle = "#1c232b"; c.font = `600 16px ${fontSans}`; c.fillText(heading, P.pad, P.pad + 8);
   const tw = c.measureText(heading).width;
   c.fillStyle = "#5b6672"; c.font = `11px ${fontMono}`; c.fillText(sub, P.pad + tw + 12, P.pad + 9);
@@ -665,32 +712,39 @@ async function saveFile(filename, data){
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   return "saved";
 }
-const fileBase = tab => tab.id === "all" ? "all-workflows" : slug(tab.title);
+const fileBase = tab => (tab.id === "all" ? "all-workflows" : slug(tab.title)) + (tab.level === "high" ? "-high-level" : "");
 function setStatus(msg, cls){ const s = $("dl-status"); s.textContent = msg; s.className = "status" + (cls ? " " + cls : ""); }
 function explain(e){ return e && e.code === "rate_limited" ? "Another save prompt is still open. Finish it, then try again." : `The file could not be saved (${(e && (e.message || e.code)) || "unknown error"}).`; }
 
+// Workflows with higher-level task types save both versions of every file
+const tabVersions = tab => levelsOf(tab).map(level => tabAt(tab, level));
 async function downloadOne(tab, kind){
   try{
-    const name = `${fileBase(tab)}-visual.${kind}`;
-    const data = kind === "csv" ? tabCSV(tab) : await tabPNG(tab);
-    const r = await saveFile(name, data);
-    setStatus(r === "saved" ? `Saved ${name}.` : `Skipped ${name}.`, r === "saved" ? "ok" : "");
+    const saved = [], skipped = [];
+    for (const v of tabVersions(tab)){
+      const name = `${fileBase(v)}-visual.${kind}`;
+      const r = await saveFile(name, kind === "csv" ? tabCSV(v) : await tabPNG(v));
+      (r === "saved" ? saved : skipped).push(name);
+      if (!downloadsNS && v.level === "task" && levelsOf(tab).length > 1) await new Promise(res => setTimeout(res, 350));
+    }
+    setStatus([saved.length ? `Saved ${saved.join(" and ")}.` : "", skipped.length ? `Skipped ${skipped.join(" and ")}.` : ""].filter(Boolean).join(" "), saved.length ? "ok" : "");
   } catch(e){ setStatus(explain(e), "bad"); }
 }
 async function downloadAll(){
   const t = tabs(); let saved = 0, skipped = 0;
+  const total = t.reduce((a, x) => a + levelsOf(x).length * 2, 0);
   const btn = $("dl-all"); btn.disabled = true;
   try{
-    for (const tab of t){
+    for (const v of t.flatMap(tabVersions)){
       for (const kind of ["csv","png"]){
-        const name = `${fileBase(tab)}-visual.${kind}`;
-        setStatus(`Saving ${name} (${saved + skipped + 1} of ${t.length * 2})…`);
-        const r = await saveFile(name, kind === "csv" ? tabCSV(tab) : await tabPNG(tab));
+        const name = `${fileBase(v)}-visual.${kind}`;
+        setStatus(`Saving ${name} (${saved + skipped + 1} of ${total})…`);
+        const r = await saveFile(name, kind === "csv" ? tabCSV(v) : await tabPNG(v));
         r === "saved" ? saved++ : skipped++;
         if (!downloadsNS) await new Promise(res => setTimeout(res, 350));
       }
     }
-    setStatus(`Saved ${saved} of ${t.length * 2} files${skipped ? `, skipped ${skipped}` : ""}.`, "ok");
+    setStatus(`Saved ${saved} of ${total} files${skipped ? `, skipped ${skipped}` : ""}.`, "ok");
   } catch(e){ setStatus(explain(e), "bad"); }
   btn.disabled = false;
 }
@@ -698,9 +752,9 @@ async function downloadZip(){
   if (!window.JSZip){ setStatus("The zip tool did not load. Use Download all files instead.", "bad"); return; }
   try{
     const zip = new JSZip();
-    for (const tab of tabs()){
-      zip.file(`${fileBase(tab)}-visual.csv`, tabCSV(tab));
-      zip.file(`${fileBase(tab)}-visual.png`, await tabPNG(tab));
+    for (const v of tabs().flatMap(tabVersions)){
+      zip.file(`${fileBase(v)}-visual.csv`, tabCSV(v));
+      zip.file(`${fileBase(v)}-visual.png`, await tabPNG(v));
     }
     const blob = await zip.generateAsync({type: "blob"});
     const r = await saveFile("handoff-maps.zip", blob);
@@ -717,7 +771,7 @@ async function downloadZip(){
     cur = td; td.classList.add("on");
     const d = td.dataset;
     tip.innerHTML = `<div class="tip-top"><span class="sw ${d.known === "true" ? "" : "sq unknown"}" style="background:${d.hex};margin:0"></span>${esc(d.name)}</div>
-      <div class="tip-meta">${KIND[d.kind]} · ${esc(d.col)} · item ${d.pos}${d.step ? `<br>${esc(d.step)}` : ""}<br>${d.hex}${d.known === "true" ? "" : " · no color set"}</div>`;
+      <div class="tip-meta">${KIND[d.kind]} · ${esc(d.col)} · item ${d.pos}${d.step ? `<br>${esc(d.step)}` : ""}${d.extra ? `<br>${esc(d.extra)}` : ""}<br>${d.hex}${d.known === "true" ? "" : " · no color set"}</div>`;
     tip.hidden = false;
     const r = td.getBoundingClientRect(), t = tip.getBoundingClientRect();
     let x = r.left + r.width / 2 - t.width / 2, y = r.top - t.height - 8;
@@ -751,6 +805,7 @@ document.addEventListener("click", e => {
   if (rm){ e.stopPropagation(); removeFile(rm.dataset.remove); return; }
   const tb = e.target.closest("[data-tab]"); if (tb){ state.active = tb.dataset.tab; render(); return; }
   const op = e.target.closest("[data-open]"); if (op){ state.active = op.dataset.open; render(); return; }
+  const lv = e.target.closest("[data-level]"); if (lv){ state.levels[lv.dataset.key] = lv.dataset.level; renderResults(); return; }
   const dl = e.target.closest("[data-dl]"); if (dl){ const t = currentTab(); if (t) downloadOne(t, dl.dataset.dl); }
 });
 document.addEventListener("keydown", e => { const op = e.target.closest?.("[data-open]"); if (op && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); state.active = op.dataset.open; render(); } });

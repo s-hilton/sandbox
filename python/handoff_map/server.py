@@ -14,7 +14,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from .core import TYPE_GROUPS, Tab, Workflow, file_base, load_workflow, tab_csv
+from .core import LEVELS, TYPE_GROUPS, Tab, Workflow, file_base, load_workflow, tab_csv, tab_levels
 from .render import tab_png
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -23,13 +23,13 @@ MAX_BODY = 50 * 1024 * 1024
 
 
 def _tab(d: dict) -> Tab:
-    if d.get("kind") not in ("tight", "loose", "all") or not d.get("files"):
+    if d.get("kind") not in ("tight", "loose", "all") or not d.get("files") or d.get("level", "task") not in LEVELS:
         raise ValueError("bad tab")
     files = [Workflow.from_dict(f) for f in d["files"]]
     for f in files:
         if f.category not in ("tight", "loose") or any(c.kind not in ("human", "ai", "handoff") for c in f.columns):
             raise ValueError("bad workflow")
-    return Tab(str(d["id"]), str(d["title"]), d["kind"], files)
+    return Tab(str(d["id"]), str(d["title"]), d["kind"], files).at_level(d.get("level", "task"))
 
 
 def parse_files(items: list[dict]) -> dict:
@@ -45,6 +45,7 @@ def parse_files(items: list[dict]) -> dict:
 
 
 def export(kind: str, tabs: list[Tab]) -> tuple[bytes, str, str]:
+    """csv/png: the first tab at its own level. zip: every tab, once per level its files have."""
     if kind == "csv":
         return tab_csv(tabs[0]).encode("utf-8"), "text/csv; charset=utf-8", f"{file_base(tabs[0])}-visual.csv"
     if kind == "png":
@@ -52,7 +53,7 @@ def export(kind: str, tabs: list[Tab]) -> tuple[bytes, str, str]:
     if kind == "zip":
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-            for t in tabs:
+            for t in (lv for tab in tabs for lv in tab_levels(tab)):
                 z.writestr(f"{file_base(t)}-visual.csv", tab_csv(t))
                 z.writestr(f"{file_base(t)}-visual.png", tab_png(t))
         return buf.getvalue(), "application/zip", "handoff-maps.zip"

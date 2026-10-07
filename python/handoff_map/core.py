@@ -27,8 +27,15 @@ TYPE_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
     ("Handoffs", [("General Request", "9FABEA"), ("Specific Request", "7486E0"), ("Direction to Check", "546AD9"),
                   ("Direction to Proceed", "2E49D1"), ("Intermediate Product", "263CAB"),
                   ("Complete Product", "152260")]),
+    # Higher-level task types. A name that is also a task type above (Black Box, Submitting Final Plan)
+    # keeps that color, so it is not repeated here.
+    ("Higher-level tasks", [("Reviewing and refining course recommendations", "ADFFD5"),
+                            ("Validating the course plan", "ADCEFF"), ("Evaluating the proposed schedule", "FFF0AD"),
+                            ("Decision Making", "FFADBC"), ("Finalizing the course plan", "DBADFF")]),
 ]
+LEVELS = ("task", "high")  # task types, higher-level task types
 UNKNOWN_HEX = "#FFFFFF"
+HIGH_HEADER = r"macro|high|parent"  # header of the higher-level task type column
 KIND_LABEL = {"human": "Human", "ai": "AI", "handoff": "Handoff"}
 
 
@@ -51,6 +58,8 @@ class Cell:
     name: str
     hex: str
     known: bool
+    tasks: list[str] = field(default_factory=list)  # higher-level square: the task types it covers
+    group: str = ""  # task square: its higher-level task type
 
 
 @dataclass
@@ -59,6 +68,7 @@ class Column:
     step: int
     label: str
     cells: list[Cell] = field(default_factory=list)
+    high_cells: list[Cell] = field(default_factory=list)  # same column, one square per higher-level task
 
 
 @dataclass
@@ -77,6 +87,7 @@ class Workflow:
     warnings: list[str]
     counters: dict[str, int]
     id: str = field(default_factory=lambda: "w" + uuid.uuid4().hex[:7])
+    has_high: bool = False  # the file has a higher-level task type column
 
     @property
     def rows_max(self) -> int:
@@ -85,22 +96,33 @@ class Workflow:
     def step_for(self, col_index: int) -> Step | None:
         return next((s for s in self.steps if s.start <= col_index <= s.end), None)
 
+    def at_level(self, level: str) -> "Workflow":
+        """This workflow with its squares showing task types ("task") or higher-level task types ("high")."""
+        if level != "high" or not self.has_high:
+            return self
+        columns = [Column(c.kind, c.step, c.label, c.high_cells, c.high_cells) for c in self.columns]
+        return Workflow(self.name, self.category, columns, self.steps, self.warnings, self.counters, self.id,
+                        self.has_high)
+
     def to_dict(self) -> dict:
         """JSON shape used by the dashboard page (same fields as the browser version)."""
-        return {"id": self.id, "name": self.name, "category": self.category,
-                "columns": [{"kind": c.kind, "step": c.step, "label": c.label,
-                             "cells": [vars(x).copy() for x in c.cells]} for c in self.columns],
+        cells = lambda xs: [{**vars(x), "tasks": list(x.tasks)} for x in xs]
+        return {"id": self.id, "name": self.name, "category": self.category, "hasHigh": self.has_high,
+                "columns": [{"kind": c.kind, "step": c.step, "label": c.label, "cells": cells(c.cells),
+                             "highCells": cells(c.high_cells)} for c in self.columns],
                 "steps": [vars(s).copy() for s in self.steps], "warnings": list(self.warnings),
-                "counters": dict(self.counters), "rowsMax": self.rows_max}
+                "counters": dict(self.counters), "rowsMax": self.rows_max,
+                "highRowsMax": self.at_level("high").rows_max}
 
     @classmethod
     def from_dict(cls, d: dict) -> "Workflow":
-        columns = [Column(c["kind"], int(c["step"]), c["label"],
-                          [Cell(str(x["name"]), str(x["hex"]), bool(x["known"])) for x in c["cells"]])
-                   for c in d["columns"]]
+        cells = lambda xs: [Cell(str(x["name"]), str(x["hex"]), bool(x["known"]),
+                                 [str(t) for t in x.get("tasks") or []], str(x.get("group") or "")) for x in xs]
+        columns = [Column(c["kind"], int(c["step"]), c["label"], cells(c["cells"]),
+                          cells(c.get("highCells") or c["cells"])) for c in d["columns"]]
         steps = [Step(s["label"], int(s["start"]), int(s["end"])) for s in d["steps"]]
         return cls(d["name"], d["category"], columns, steps, list(d.get("warnings", [])),
-                   dict(d["counters"]), d["id"])
+                   dict(d["counters"]), d["id"], bool(d.get("hasHigh")))
 
 
 # ---------- Parsing ----------
@@ -170,11 +192,14 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
     header = rows[0] if rows else []
     get = lambda r, i: r[i] if 0 <= i < len(r) else ""
 
+    # The higher-level task type column (e.g. "Macro Task") sits between Task Type and Handoff Type
+    high_col = next((i for i, h in enumerate(header) if i and re.search(HIGH_HEADER, norm(h))), -1)
+
     def find_col(pattern: str, fallback: int) -> int:
-        return next((i for i, h in enumerate(header) if re.search(pattern, norm(h))), fallback)
+        return next((i for i, h in enumerate(header) if i != high_col and re.search(pattern, norm(h))), fallback)
 
     task_col, hand_col, agent_col = find_col("task", 1), find_col("hand", 2), find_col("agent", 3)
-    if not any(re.search("task", norm(h)) for h in header):
+    if not any(i != high_col and re.search("task", norm(h)) for i, h in enumerate(header)):
         warnings.append("No “Task Type” header found, so columns B, C and D were read as "
                         "Task Type, Handoff Type and Agent.")
 
@@ -189,8 +214,8 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
         warnings.append(f"The first cell says “{get(header, 0) or '(blank)'}”. Treated as {category} because "
                         f"the file {'has' if has_step_labels else 'has no'} step labels.")
 
-    # Flatten rows into a sequence of entries
-    entries: list[tuple[str, str, int]] = []
+    # Flatten rows into a sequence of entries: (kind, name, step, higher-level task type or "")
+    entries: list[tuple[str, str, int, str]] = []
     step_idx, step_labels = -1, []
     last_agent, inherited = None, 0
     for r in rows[1:]:
@@ -207,35 +232,58 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
                 kind = last_agent or "human"
                 inherited += 1
             last_agent = kind
-            entries.append((kind, task, step_idx))
+            entries.append((kind, task, step_idx, get(r, high_col) if high_col >= 0 else ""))
         if hand:
-            entries.append(("handoff", hand, step_idx))
+            entries.append(("handoff", hand, step_idx, ""))
     if inherited:
         one = inherited == 1
         warnings.append(f"{inherited} task {'row has' if one else 'rows have'} no agent, so "
                         f"{'it was' if one else 'they were'} kept with the agent of the task above.")
     if category == "tight" and not step_labels:
         warnings.append("Marked Tight but no step labels were found in the first column.")
-    if category == "tight" and any(step < 0 for _, _, step in entries):
+    if category == "tight" and any(e[2] < 0 for e in entries):
         warnings.append("Some rows come before the first step label and sit outside any step.")
 
     # Group consecutive entries of the same kind within the same step
     counters = {"human": 0, "ai": 0, "handoff": 0}
     columns: list[Column] = []
     unknown: list[str] = []
-    for kind, entry_name, step in entries:
-        last = columns[-1] if columns else None
-        if not last or last.kind != kind or last.step != step:
-            counters[kind] += 1
-            columns.append(Column(kind, step, f"{KIND_LABEL[kind]} #{counters[kind]}"))
+    high_name, untyped = "", 0
+
+    def cell(entry_name: str) -> Cell:
         key = norm(entry_name)
         hex_ = COLORS.get(key)
         if not hex_ and entry_name not in unknown:
             unknown.append(entry_name)
-        columns[-1].cells.append(Cell(CANON.get(key, entry_name), hex_ or UNKNOWN_HEX, bool(hex_)))
+        return Cell(CANON.get(key, entry_name), hex_ or UNKNOWN_HEX, bool(hex_))
+
+    for kind, entry_name, step, high in entries:
+        last = columns[-1] if columns else None
+        new_col = not last or last.kind != kind or last.step != step
+        if new_col:
+            counters[kind] += 1
+            columns.append(Column(kind, step, f"{KIND_LABEL[kind]} #{counters[kind]}"))
+        col = columns[-1]
+        col.cells.append(cell(entry_name))
+        if kind == "handoff":
+            col.high_cells.append(col.cells[-1])
+            continue
+        # A higher-level task type covers the task rows below it until the next one is named.
+        # Blank rows continue it; a new column starts a new square with the same type.
+        high_name = high or high_name
+        if high_col >= 0 and not high_name:
+            untyped += 1
+        if high or new_col or not high_name:
+            col.high_cells.append(cell(high_name or entry_name))
+        col.high_cells[-1].tasks.append(col.cells[-1].name)
+        col.cells[-1].group = col.high_cells[-1].name
     if unknown:
         warnings.append(f"No color is set for: {', '.join(unknown)}. These show as striped squares "
                         f"and export as {UNKNOWN_HEX}.")
+    if untyped:
+        one = untyped == 1
+        warnings.append(f"{untyped} task {'row comes' if one else 'rows come'} before the first higher-level "
+                        f"task type, so {'it uses its' if one else 'they use their'} own task type there.")
 
     steps: list[Step] = []
     if category == "tight":
@@ -245,7 +293,7 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
                 steps.append(Step(label, idx[0], idx[-1]))
             else:
                 warnings.append(f"“{label}” has no rows under it.")
-    return Workflow(name, category, columns, steps, warnings, counters)
+    return Workflow(name, category, columns, steps, warnings, counters, has_high=high_col >= 0)
 
 
 def load_workflow(filename: str, data: bytes, name: str | None = None) -> Workflow:
@@ -259,6 +307,14 @@ class Tab:
     title: str
     kind: str  # "tight" | "loose" | "all"
     files: list[Workflow]
+    level: str = "task"  # "task" | "high"
+
+    @property
+    def has_high(self) -> bool:
+        return any(f.has_high for f in self.files)
+
+    def at_level(self, level: str) -> "Tab":
+        return Tab(self.id, self.title, self.kind, [f.at_level(level) for f in self.files], level)
 
 
 def ordered(workflows: list[Workflow]) -> list[Workflow]:
@@ -292,7 +348,13 @@ def slug(s: str) -> str:
 
 
 def file_base(tab: Tab) -> str:
-    return "all-workflows" if tab.id == "all" else slug(tab.title)
+    base = "all-workflows" if tab.id == "all" else slug(tab.title)
+    return base + "-high-level" if tab.level == "high" else base
+
+
+def tab_levels(tab: Tab) -> list[Tab]:
+    """The tab once per version to export: task types, then higher-level task types when the files have them."""
+    return [tab.at_level(lv) for lv in LEVELS if lv == "task" or tab.has_high]
 
 
 # ---------- CSV export ----------
