@@ -1,0 +1,27 @@
+AI #1,Handoff #1,Human #1,Handoff #2,AI #2,Handoff #3,Human #2,Handoff #4,AI #3,Handoff #5,Human #3,Handoff #6,AI #4,Handoff #7,Human #4
+#FF00DD,#546AD9,#FFFDB8,#7486E0,#FFB8FB,#546AD9,#FF2F00,#7486E0,#FFB8FB,#546AD9,#FF2F00,#9FABEA,#FFB8FB,#546AD9,#FF542E
+#FFB8FB,#152260,#5ED100,,#FFB8FB,#152260,#FF542E,,#FFB8FB,#152260,#5ED100,,#FFB8FB,#152260,#FF7A5C
+#FFB8FB,,#FFFA5C,,,,#C4C4C4,,,,#FF2F00,,,,#FF7B00
+,,#357500,,,,#525252,,,,#C4C4C4,,,,
+,,#FF542E,,,,,,,,#FF542E,,,,
+,,#C4C4C4,,,,,,,,#525252,,,,
+,,#525252,,,,,,,,,,,,
+,,#FFFDB8,,,,,,,,,,,,
+
+Legend,Hex
+SESSION_START,#FF00DD
+Black Box,#FFB8FB
+Direction to Check,#546AD9
+Complete Product,#152260
+Consulting Degree Progress Record,#FFFDB8
+Cross-Checking Against Degree Progress,#5ED100
+Consulting Course Sequence Guide,#FFFA5C
+Cross-Checking Against Recommended Sequence,#357500
+Reviewing Proposed Calendar,#FF542E
+Pause,#C4C4C4
+Drafting Prompt,#525252
+Specific Request,#7486E0
+Reviewing Plan Revisions,#FF2F00
+General Request,#9FABEA
+Reviewing Proposed Courses,#FF7A5C
+Submitting Final Plan,#FF7B00

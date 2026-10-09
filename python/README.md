@@ -5,7 +5,7 @@ A Python version of the Workflow Map dashboard in `../index.html`. The page look
 What's different from the HTML version:
 
 - It opens in **dark mode**. The button in the bottom-right corner switches between light and dark, and your choice is remembered.
-- Each map has a **Task types / Higher-level task types** switch, and every download saves both versions (the second ends in `-high-level`), the same as the HTML version.
+- Each map has a **Micro tasks / Task types / Macro tasks / All levels** switch, and every download saves each version (ending in `-micro`, `-macro` and `-all-levels`), the same as the HTML version.
 - **Hovering over a square** shows everything about it: the task or handoff type, whether it is a human task, AI task or handoff, the workflow, the step and the columns that step spans, the column and its position, where the square sits in that column, the agent (for a handoff, who it passes from and to), and its color code.
 
 ## Setup

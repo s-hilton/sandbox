@@ -6,7 +6,7 @@ from functools import lru_cache
 
 from PIL import Image, ImageDraw, ImageFont
 
-from .core import Cell, Tab, Workflow, groups_of, legend_of
+from .core import LEVEL_NAME, Cell, Tab, Workflow, groups_of, legend_of
 
 P = dict(col=76, row=26, sq=18, head=28, step=32, title=22, group=24, pad=24, gap_block=28, gap_group=56)
 SCALE = 2
@@ -92,15 +92,16 @@ def tab_png(tab: Tab) -> bytes:
     def line(x1, y1, x2, y2, fill, width=1.0):
         d.line([(s(x1), s(y1)), (s(x2), s(y2))], fill=fill, width=max(1, round(width * SCALE)))
 
-    def swatch(x, y, size, cell: Cell):
-        box = [s(x), s(y), s(x + size) - 1, s(y + size) - 1]
+    def swatch(x, y, size, cell: Cell, height=None):
+        height = height or size
+        box = [s(x), s(y), s(x + size) - 1, s(y + height) - 1]
         if cell.known:
             d.rectangle(box, fill=cell.hex)
         else:
-            tile = Image.new("RGB", (s(size), s(size)), "#ffffff")
+            tile = Image.new("RGB", (s(size), s(height)), "#ffffff")
             td = ImageDraw.Draw(tile)
-            for k in range(-size, size, 5):
-                td.line([(s(k), s(size)), (s(k + size), 0)], fill="#bbbbbb", width=s(2))
+            for k in range(-round(height), size, 5):
+                td.line([(s(k), s(height)), (s(k + height), 0)], fill="#bbbbbb", width=s(2))
             img.paste(tile, (s(x), s(y)))
         d.rectangle(box, outline="#d1d1d1", width=1)
 
@@ -108,8 +109,7 @@ def tab_png(tab: Tab) -> bytes:
     heading = "All workflows" if multi else tab.title
     sub = (f"{len(tab.files)} workflows · stacked, tight first" if multi
            else f"{tab.files[0].category.upper()} WORKFLOW")
-    if tab.level == "high":
-        sub += " · HIGHER-LEVEL TASK TYPES"
+    sub += {"micro": " · MICRO TASKS", "high": " · MACRO TASKS", "all": " · MICRO, TASK AND MACRO"}.get(tab.level, "")
     text(P["pad"], P["pad"] + 8, heading, font("sans-bold", 16), INK)
     tw = d.textlength(heading, font=font("sans-bold", 16)) / SCALE
     text(P["pad"] + tw + 12, P["pad"] + 9, sub, font("mono", 11), MUTED)
@@ -136,12 +136,18 @@ def tab_png(tab: Tab) -> bytes:
             cx = bx + i * P["col"]
             rect(cx, y, P["col"], P["head"], HEAD_BG)
             rect(cx, y + P["head"] - 3, P["col"], 3, KIND[col.kind])
-            text(cx + P["col"] / 2, y + P["head"] / 2 - 1, col.label, font("mono", 11), INK, "mm")
+            if col.sub:  # all-levels view: column on top, level below
+                text(cx + P["col"] / 2, y + 8, col.label, font("mono", 9), MUTED, "mm")
+                text(cx + P["col"] / 2, y + 18, LEVEL_NAME[col.sub], font("sans-bold", 10), INK, "mm")
+            else:
+                text(cx + P["col"] / 2, y + P["head"] / 2 - 1, col.label, font("mono", 11), INK, "mm")
         for r in range(f.rows_max):
             for i, col in enumerate(f.columns):
-                if r < len(col.cells):
+                x = col.cells[r] if r < len(col.cells) else None
+                if x:  # a square spanning several rows (all-levels view) is drawn tall
                     swatch(bx + i * P["col"] + (P["col"] - P["sq"]) / 2,
-                           y + P["head"] + r * P["row"] + (P["row"] - P["sq"]) / 2, P["sq"], col.cells[r])
+                           y + P["head"] + r * P["row"] + (P["row"] - P["sq"]) / 2, P["sq"], x,
+                           P["sq"] + (x.rows - 1) * P["row"] if col.sub else None)
         w, h = len(f.columns) * P["col"], P["head"] + f.rows_max * P["row"]
         for i in range(len(f.columns) + 1):
             line(bx + i * P["col"], y, bx + i * P["col"], y + h, GRID)

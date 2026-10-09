@@ -1,0 +1,73 @@
+Loose,Micro Task,Task Type,Macro Task,Handoff Type,Agent
+,SESSION_START,,,,AI
+,AI_WORK_NOTICE,Black Box,Black Box,,AI
+,AI_CONTENT_OUTPUT,Black Box,,,AI
+,,,,Direction to Check,
+,,,,Complete Product,
+,SCROLL_REFERENCE_DOC,Consulting Degree Progress Record,Validating the Course Plan,,Human
+,HOVER_REFERENCE_DOC,,,,Human
+,SCROLL_REFERENCE_DOC,Cross-Checking Against Degree Progress,,,Human
+,CURSOR_TRANSIT,,,,Human
+,CURSOR_TRANSIT,Consulting Course Sequence Guide,,,Human
+,TAB_SWITCH,,,,Human
+,PANEL_EXPAND,,,,Human
+,PANEL_EXPAND,,,,Human
+,OPEN_RESOURCE,,,,Human
+,CLOSE_RESOURCE,,,,Human
+,OPEN_RESOURCE,,,,Human
+,HOVER_REFERENCE_DOC,,,,Human
+,CURSOR_TRANSIT,,,,Human
+,CLOSE_RESOURCE,,,,Human
+,HOVER_AI_OUTPUT,Cross-Checking Against Recommended Sequence,,,Human
+,OPEN_RESOURCE,,,,Human
+,HOVER_REFERENCE_DOC,,,,Human
+,CLOSE_RESOURCE,,,,Human
+,SCROLL_AI_OUTPUT,Reviewing Proposed Calendar,,,Human
+,EXPAND_SCHEDULE_CALENDAR,,,,Human
+,SCROLL_AI_OUTPUT,Pause,,,Human
+,TYPE_PROMPT,Drafting Prompt,,,Human
+,SEND_PROMPT,,,,Human
+,TAB_SWITCH,Consulting Degree Progress Record,,,Human
+,SCROLL_REFERENCE_DOC,,,,Human
+,,,,Specific Request,
+,AI_WORK_NOTICE,Black Box,Black Box,,AI
+,AI_CONTENT_OUTPUT,Black Box,,,AI
+,,,,Direction to Check,
+,,,,Complete Product,
+,EXPAND_PLAN_DIFF,Reviewing plan Revisions,Reviewing and refining course recommendations,,Human
+,CURSOR_TRANSIT,Reviewing Proposed Calendar,Evaluating the proposed calendar,,Human
+,SCROLL_AI_OUTPUT,,,,Human
+,EXPAND_SCHEDULE_CALENDAR,,,,Human
+,SCROLL_AI_OUTPUT,Pause,Reviewing and refining course recommendations,,Human
+,TYPE_PROMPT,Drafting Prompt,,,Human
+,SEND_PROMPT,,,,Human
+,,,,Specific Request,
+,AI_WORK_NOTICE,Black Box,Black Box,,AI
+,AI_CONTENT_OUTPUT,Black Box,,,AI
+,,,,Direction to Check,
+,,,,Complete Product,
+,CURSOR_TRANSIT,Reviewing Plan Revisions,Validating the course plan,,Human
+,CURSOR_TRANSIT,Cross-Checking Against Degree Progress,,,Human
+,SCROLL_AI_OUTPUT,Reviewing Plan Revisions,,,Human
+,SCROLL_AI_OUTPUT,Pause,,,Human
+,SCROLL_AI_OUTPUT,Reviewing Proposed Calendar,Evaluating the proposed calendar,,Human
+,EXPAND_SCHEDULE_CALENDAR,,,,Human
+,SCROLL_AI_OUTPUT,Drafting Prompt,,,Human
+,TYPE_PROMPT,,,,Human
+,SEND_PROMPT,,,,Human
+,,,,General Request,
+,AI_WORK_NOTICE,Black Box,Black Box,,AI
+,AI_CONTENT_OUTPUT,Black Box,,,AI
+,,,,Direction to Check,
+,,,,Complete Product,
+,SCROLL_AI_OUTPUT,Reviewing Proposed Calendar,Evaluating the proposed calendar,,Human
+,EXPAND_SCHEDULE_CALENDAR,,,,Human
+,SCROLL_AI_OUTPUT,Reviewing Proposed Courses,Reviewing and refining course recommendations,,Human
+,SCROLL_AI_OUTPUT,,,,Human
+,CLICK_AI_OUTPUT_ITEM,,,,Human
+,CLOSE_RESOURCE,,,,Human
+,CLICK_AI_OUTPUT_ITEM,,,,Human
+,CLOSE_RESOURCE,,,,Human
+,SCROLL_AI_OUTPUT,Submitting Final Plan,Finalizing the course plan,,Human
+,ADVANCE_STEP,,,,Human
+,SUBMIT_FINAL,,,,Human
