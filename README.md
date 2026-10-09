@@ -7,11 +7,14 @@ A single-page dashboard (`index.html`) that turns workflow transcript CSVs into 
 
 ## Input format
 
-Cell A1 says `Tight` or `Loose`. The header row names `Task Type`, an optional higher-level task type column (headed e.g. `Macro Task`), `Handoff Type` and `Agent`. For tight workflows, step labels (e.g. `Step 1: Propose`) go in column A on the first row of each step. See `examples/tight-example.csv` and `examples/loose-example.csv` (the example the dashboard opens with).
+Cell A1 says `Tight` or `Loose`. The header row names an optional `Micro Task` column, `Task Type`, an optional `Macro Task` column, `Handoff Type` and `Agent`. For tight workflows, step labels (e.g. `Step 1: Propose`) go in column A on the first row of each step. See `examples/micro-example.csv` (all three levels; the example the dashboard opens with), `examples/loose-example.csv` and `examples/tight-example.csv`.
 
-## Higher-level task types
+## Micro tasks, task types and macro tasks
 
-The higher-level task type column sits between Task Type and Handoff Type. Write a higher-level type on the first task row it covers and leave the rows below it blank until the next one starts. Each map has a **Task types / Higher-level task types** switch: the higher-level view keeps the same columns and handoffs, and shows one square per higher-level task (hover to see which task types it includes). Higher-level names that are also task types (e.g. `Black Box`, `Submitting Final Plan`) keep the same color.
+- **Micro Task** (left of Task Type) has one action per row. A row with a micro task and no task type belongs to the task type above it. A micro task with no task type above it (e.g. `SESSION_START` at the very start) stands in for its own task type.
+- **Macro Task** (between Task Type and Handoff Type) goes on the first task row it covers; leave the rows below it blank until the next one starts.
+
+Each map has a **Micro tasks / Task types / Macro tasks / All levels** switch (only the levels the file has are shown). Every view keeps the same columns and handoffs. **All levels** splits each human and AI column into Micro, Task and Macro sub-columns with one row per micro task; task and macro squares stretch down the rows they cover, so you can read across to see which task type and macro task each micro task belongs to. Hover any square to see what it includes and belongs to. Macro names that are also task types (e.g. `Black Box`, `Submitting Final Plan`) keep the same color; micro tasks use their own neon colors (see the color key).
 
 ## How columns are built
 
@@ -19,7 +22,7 @@ Consecutive rows of the same kind become one column: human tasks → `Human #n`,
 
 ## Exports
 
-Each tab exports as `<name>-visual.csv` (one hex color code per square, step START/END markers above the headers, legend below) and `<name>-visual.png`. When the files have higher-level task types, every download also saves `<name>-high-level-visual.csv` and `<name>-high-level-visual.png`.
+Each tab exports as `<name>-visual.csv` (one hex color code per square, step START/END markers above the headers, legend below) and `<name>-visual.png`. When the files have micro or macro tasks, every download also saves `<name>-micro-visual`, `<name>-macro-visual` and `<name>-all-levels-visual` (CSV and PNG) for the levels they have. In the all-levels CSV a tall square repeats its color on each row it covers.
 
 Open `index.html` directly in a browser to use it locally.
 

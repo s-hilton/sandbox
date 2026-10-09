@@ -10,6 +10,7 @@ from handoff_map.render import tab_png  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 EXAMPLE = HERE.parents[1] / "examples" / "tight-example.csv"
+MICRO = HERE.parents[1] / "examples" / "micro-example.csv"
 GOLDEN = HERE / "golden"  # CSVs exported by the browser version (index.html)
 
 
@@ -65,7 +66,7 @@ def test_higher_level_task_types():
     assert [(x.name, x.tasks) for x in high.columns[22].cells] == [
         ("Orienting to Next Step", ["Orienting to Next Step"]),
         ("Decision Making", ["Reviewing AI Self-Check Results", "Approving"])]
-    assert any("no higher-level task type" in w for w in wf.warnings)
+    assert any("no macro task" in w for w in wf.warnings)
     # Same column structure, handoffs unchanged, task view untouched
     assert [c.label for c in high.columns] == [c.label for c in wf.columns]
     assert high.columns[1].cells == wf.columns[1].cells and len(wf.columns[2].cells) == 17
@@ -76,9 +77,9 @@ def test_higher_level_task_types():
 def test_higher_level_matches_browser_export():
     tabs = make_tabs([load(EXAMPLE), load(HERE / "loose-example.csv", "loose")])
     for tab, golden in ((tabs[0], "tight-example"), (tabs[-1], "all-workflows")):
-        high = tab_levels(tab)[1]
-        assert file_base(high) == golden + "-high-level"
-        assert tab_csv(high) == (GOLDEN / f"{golden}-high-level-visual.csv").read_bytes().decode()
+        high = tab.at_level("high")
+        assert file_base(high) == golden + "-macro"
+        assert tab_csv(high) == (GOLDEN / f"{golden}-macro-visual.csv").read_bytes().decode()
 
 
 def test_higher_level_header_and_new_column():
@@ -87,7 +88,7 @@ def test_higher_level_header_and_new_column():
                      ",Approving,,,Human\n")
     wf = build_workflow(rows, "l")
     assert wf.has_high and [c.label for c in wf.columns] == ["Human #1", "Handoff #1", "Human #2"]
-    assert any("no higher-level task type" in w for w in wf.warnings)
+    assert any("no macro task" in w for w in wf.warnings)
     high = wf.at_level("high")
     assert [(x.name, x.tasks) for x in high.columns[0].cells] == [("Pause", ["Pause"]),
                                                                   ("Decision Making", ["Approving", "Pause"])]
@@ -98,14 +99,54 @@ def test_higher_level_header_and_new_column():
 def test_exports_both_versions():
     tabs = make_tabs([load(EXAMPLE), load(HERE / "loose-example.csv", "loose")])
     names = [file_base(t) for tab in tabs for t in tab_levels(tab)]
-    assert names == ["tight-example", "tight-example-high-level", "loose", "all-workflows",
-                     "all-workflows-high-level"]
+    assert names == ["tight-example", "tight-example-macro", "tight-example-all-levels", "loose",
+                     "all-workflows", "all-workflows-macro", "all-workflows-all-levels"]
+
+
+def test_micro_tasks():
+    wf = load(MICRO)
+    assert wf.levels == ["micro", "task", "high"] and wf.counters == {"human": 4, "ai": 4, "handoff": 7}
+    human = wf.columns[2]
+    # A row with only a micro task belongs to the task type above it
+    assert [(x.name, x.tasks) for x in human.cells[:2]] == [
+        ("Consulting Degree Progress Record", ["SCROLL_REFERENCE_DOC", "HOVER_REFERENCE_DOC"]),
+        ("Cross-Checking Against Degree Progress", ["SCROLL_REFERENCE_DOC", "CURSOR_TRANSIT"])]
+    micro = wf.at_level("micro").columns[2].cells
+    assert len(micro) == 25 and (micro[0].name, micro[0].hex, micro[0].group) == (
+        "SCROLL_REFERENCE_DOC", "#40FFBF", "Consulting Degree Progress Record")
+    assert [(x.name, x.rows) for x in human.high_cells] == [("Validating the course plan", 25)]
+    # A micro task with no task type above it stands in for its own task type
+    assert wf.columns[0].cells[0].name == "SESSION_START" and len(wf.warnings) == 1
+    # Every micro, task and macro name in the example has a color
+    assert all(x.known for lv in wf.levels for c in wf.at_level(lv).columns for x in c.cells)
+
+
+def test_all_levels_view():
+    wf = load(MICRO).at_level("all")
+    assert [(c.label, c.sub) for c in wf.columns[:5]] == [
+        ("AI #1", "micro"), ("AI #1", "task"), ("AI #1", "high"), ("Handoff #1", ""), ("Human #1", "micro")]
+    task, macro = wf.columns[5].cells, wf.columns[6].cells
+    assert len(task) == len(macro) == 25  # one row per micro task
+    assert task[0].rows == 2 and task[1] is None and task[2].name == "Cross-Checking Against Degree Progress"
+    assert macro[0].rows == 25 and all(x is None for x in macro[1:])
+    # A file without micro tasks shows task types next to macro tasks
+    assert [c.sub for c in load(EXAMPLE).at_level("all").columns[:3]] == ["task", "high", ""]
+
+
+def test_micro_example_matches_browser_export():
+    tab = make_tabs([load(MICRO)])[0]
+    for t in tab_levels(tab):
+        assert tab_csv(t) == (GOLDEN / f"{file_base(t)}-visual.csv").read_bytes().decode()
+    assert [file_base(t) for t in tab_levels(tab)] == [
+        "micro-example", "micro-example-micro", "micro-example-macro", "micro-example-all-levels"]
 
 
 def test_png_renders():
     tabs = make_tabs([load(EXAMPLE), load(HERE / "loose-example.csv")])
     img = Image.open(io.BytesIO(tab_png(tabs[-1])))
     assert img.format == "PNG" and img.width > 1000 and img.height > 400
+    img = Image.open(io.BytesIO(tab_png(make_tabs([load(MICRO)])[0].at_level("all"))))
+    assert img.format == "PNG" and img.height > 600
 
 
 def test_dashboard_server_round_trip():
@@ -137,8 +178,7 @@ def test_dashboard_server_round_trip():
         csv_bytes = post("/api/export", {"kind": "csv", "tabs": [tab]})
         assert csv_bytes == (GOLDEN / "all-workflows-visual.csv").read_bytes()
         z = zipfile.ZipFile(io.BytesIO(post("/api/export", {"kind": "zip", "tabs": [tab]})))
-        assert z.namelist() == ["all-workflows-visual.csv", "all-workflows-visual.png",
-                                "all-workflows-high-level-visual.csv", "all-workflows-high-level-visual.png"]
+        assert z.namelist() == [f"all-workflows{v}-visual.{x}" for v in ("", "-macro", "-all-levels") for x in ("csv", "png")]
         high = post("/api/export", {"kind": "csv", "tabs": [{**tab, "level": "high"}]}).decode()
         assert high == tab_csv(make_tabs([load(EXAMPLE), load(HERE / "loose-example.csv", "loose")])[-1].at_level("high"))
     finally:
