@@ -292,11 +292,12 @@ function buildWorkflow(rows, name){
   else { category = hasStepLabels ? "tight" : "loose"; warnings.push(`The first cell says “${header[0]||"(blank)"}”. Treated as ${category} because the file ${hasStepLabels ? "has" : "has no"} step labels.`); }
 
   // Flatten rows into a sequence of entries. A row with a task type starts a task; a row with only a
-  // micro task adds it to the task above. An orphan is a micro task with no task type above it.
+  // micro task adds it to the task above. An orphan is a micro task with no task type above it
+  // (e.g. SESSION_START): it shows as a micro task only.
   const entries = [];
   let stepIdx = -1; const stepLabels = [];
   let lastAgent = null, inherited = 0;
-  const unknown = new Set(), orphans = [];
+  const unknown = new Set(), orphans = []; let seenTask = false;
   rows.slice(1).forEach(r => {
     const newStep = category === "tight" && r[0];
     if (newStep){ stepLabels.push(r[0]); stepIdx = stepLabels.length - 1; }
@@ -310,7 +311,8 @@ function buildWorkflow(rows, name){
       else if (lastAgent){ kind = lastAgent; inherited++; }
       else { kind = "human"; inherited++; }
       lastAgent = kind;
-      if (!task) orphans.push(micro);  // stands in for its own task type
+      if (!task && seenTask) orphans.push(micro);  // micro tasks before the first task type (session events) need no note
+      seenTask = seenTask || !!task;
       entries.push({kind, name: task || micro, step: stepIdx, high: highCol >= 0 ? (r[highCol] || "") : "", micros: micro ? [micro] : [], orphan: !task});
     }
     if (hand) entries.push({kind: "handoff", name: hand, step: stepIdx, high: "", micros: []});
@@ -318,7 +320,7 @@ function buildWorkflow(rows, name){
   if (inherited) warnings.push(`${inherited} task ${inherited===1?"row has":"rows have"} no agent, so ${inherited===1?"it was":"they were"} kept with the agent of the task above.`);
   if (category === "tight" && !stepLabels.length) warnings.push("Marked Tight but no step labels were found in the first column.");
   if (category === "tight" && entries.some(e => e.step < 0)) warnings.push("Some rows come before the first step label and sit outside any step.");
-  if (orphans.length){ const one = orphans.length === 1; warnings.push(`${[...new Set(orphans)].join(", ")} ${one?"has":"have"} no task type above ${one?"it":"them"}, so ${one?"it stands":"they stand"} in for ${one?"its":"their"} own task type and macro task.`); }
+  if (orphans.length){ const one = orphans.length === 1; warnings.push(`${[...new Set(orphans)].join(", ")} ${one?"has":"have"} no task type above ${one?"it":"them"}, in ${one?"its":"their"} column, so ${one?"it shows":"they show"} as ${one?"a micro task":"micro tasks"} only.`); }
 
   // Group consecutive entries of the same kind within the same step
   const counters = {human:0, ai:0, handoff:0};
@@ -327,7 +329,7 @@ function buildWorkflow(rows, name){
   const cell = name => {
     const key = norm(name), hex = COLORS.get(key);
     if (!hex) unknown.add(name);
-    return {name: CANON.get(key) || name, hex: hex || UNKNOWN_HEX, known: !!hex, tasks: [], group: "", rows: 1};
+    return {name: CANON.get(key) || name, hex: hex || UNKNOWN_HEX, known: !!hex, tasks: [], group: "", rows: 1, parent: -1};
   };
   let highName = "", highKind = null, untyped = 0;
   entries.forEach(e => {
@@ -337,21 +339,23 @@ function buildWorkflow(rows, name){
       counters[e.kind]++;
       columns.push({kind: e.kind, step: e.step, label: `${LABEL[e.kind]} #${counters[e.kind]}`, cells: [], highCells: [], microCells: []});
     }
-    const col = columns[columns.length-1], x = cell(e.name);
+    const col = columns[columns.length-1];
+    if (e.orphan){ e.micros.forEach(m => col.microCells.push(cell(m))); return; }  // micro tasks only
+    const x = cell(e.name);
     col.cells.push(x);
     if (e.kind === "handoff"){ col.highCells.push(x); col.microCells.push(x); return; }
     // Micro tasks: one square each; a task with none keeps its task type square
     x.tasks = [...e.micros]; x.rows = Math.max(1, e.micros.length);
-    (e.micros.length ? e.micros : [null]).forEach(m => { const mx = m ? cell(m) : {...x, tasks: [], rows: 1}; mx.group = x.name; col.microCells.push(mx); });
+    (e.micros.length ? e.micros : [null]).forEach(m => { const mx = m ? cell(m) : {...x, tasks: [], rows: 1}; mx.group = x.name; mx.parent = col.cells.length - 1; col.microCells.push(mx); });
     // A macro task covers the task rows below it until the next one is named.
     // Blank rows continue it while the agent stays the same (a new column starts a new square
     // with the same type); a blank row after another agent's task has none of its own.
     if (e.high || highKind !== e.kind) highName = e.high;
     highKind = e.kind;
-    if (highCol >= 0 && !highName && !e.orphan) untyped++;  // orphans already have their own warning
+    if (highCol >= 0 && !highName) untyped++;
     if (e.high || newCol || !highName) col.highCells.push({...cell(highName || e.name), rows: 0});
     const hx = col.highCells[col.highCells.length-1];
-    hx.tasks.push(x.name); hx.rows += x.rows; x.group = hx.name;
+    hx.tasks.push(x.name); hx.rows += x.rows; x.group = hx.name; x.parent = col.highCells.length - 1;
   });
   if (unknown.size) warnings.push(`No color is set for: ${[...unknown].join(", ")}. These show as striped squares and export as ${UNKNOWN_HEX}.`);
   if (untyped) warnings.push(`${untyped} task ${untyped===1?"row has":"rows have"} no macro task (blank, with no task by the same agent above), so ${untyped===1?"it uses its":"they use their"} own task type in the macro view.`);
@@ -432,19 +436,22 @@ function view(f, level){
   return {...f, level, columns, rowsMax: rowsMaxOf(columns)};
 }
 // Each human and AI column split into one sub-column per level (micro, task, macro), one row per micro task,
-// with task and macro squares as tall squares spanning the rows they cover (null marks a covered row)
+// with task and macro squares as tall squares spanning the rows they cover
 function allLevels(f){
   const levels = fileLevels(f), columns = [], first = [], last = [];
   f.columns.forEach(c => {
     first.push(columns.length);
-    (c.kind === "handoff" ? [""] : levels).forEach(lv => {
-      const cells = [];
-      (lv === "micro" ? c.microCells : lv === "high" ? c.highCells : c.cells).forEach(x => {
-        cells.push(x);
-        for (let i = 1; i < (lv === "micro" ? 1 : x.rows || 1); i++) cells.push(null);
+    if (c.kind === "handoff") columns.push({...c, sub: ""});
+    else {
+      // Each row is a micro task; beside it, its task type and macro task ("" when it has none),
+      // drawn once at the first row they cover (null on the rows below)
+      const tasks = c.microCells.map(m => m.parent ?? -1), highs = tasks.map(t => t >= 0 ? c.cells[t].parent ?? -1 : -1);
+      levels.forEach(lv => {
+        const [idx, src] = lv === "task" ? [tasks, c.cells] : [highs, c.highCells];
+        const cells = lv === "micro" ? [...c.microCells] : idx.map((i, r) => i < 0 ? "" : r && idx[r - 1] === i ? null : src[i]);
+        columns.push({...c, cells, sub: lv});
       });
-      columns.push({...c, cells, sub: lv});
-    });
+    }
     last.push(columns.length - 1);
   });
   return {...f, level: "all", columns, rowsMax: rowsMaxOf(columns),

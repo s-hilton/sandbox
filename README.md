@@ -11,7 +11,7 @@ Cell A1 says `Tight` or `Loose`. The header row names an optional `Micro Task` c
 
 ## Micro tasks, task types and macro tasks
 
-- **Micro Task** (left of Task Type) has one action per row. A row with a micro task and no task type belongs to the task type above it. A micro task with no task type above it (e.g. `SESSION_START` at the very start) stands in for its own task type.
+- **Micro Task** (left of Task Type) has one action per row. A row with a micro task and no task type belongs to the task type above it. A micro task with no task type above it (e.g. `SESSION_START`, which marks that data collection has begun) is a micro task only: it shows in the micro view and the all-levels view's Micro column, with nothing beside it, and has no task type or macro task.
 - **Macro Task** (between Task Type and Handoff Type) goes on the first task row it covers; leave the rows below it blank until the next one starts.
 
 Each map has a **Micro tasks / Task types / Macro tasks / All levels** switch (only the levels the file has are shown). Every view keeps the same columns and handoffs. **All levels** splits each human and AI column into Micro, Task and Macro sub-columns with one row per micro task; task and macro squares stretch down the rows they cover, so you can read across to see which task type and macro task each micro task belongs to. Hover any square to see what it includes and belongs to. Macro names that are also task types (e.g. `Black Box`, `Submitting Final Plan`) keep the same color; micro tasks use their own neon colors (see the color key).

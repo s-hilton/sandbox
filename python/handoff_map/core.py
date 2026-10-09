@@ -78,6 +78,7 @@ class Cell:
     tasks: list[str] = field(default_factory=list)  # the level below it covers (macro: task types; task: micro tasks)
     group: str = ""  # the level above it (micro: task type; task: macro task)
     rows: int = 1  # how many micro task rows it spans (used by the all-levels view)
+    parent: int = -1  # index of the square above it in the same column (micro -> task, task -> macro); -1: none
 
 
 @dataclass
@@ -85,7 +86,7 @@ class Column:
     kind: str  # "human" | "ai" | "handoff"
     step: int
     label: str
-    cells: list[Cell | None] = field(default_factory=list)  # None: a row covered by a taller square above
+    cells: list = field(default_factory=list)  # Cells; all-levels view also None (covered by a tall square above), "" (empty)
     high_cells: list[Cell] = field(default_factory=list)  # same column, one square per macro task
     micro_cells: list[Cell] = field(default_factory=list)  # same column, one square per micro task
     sub: str = ""  # all-levels view: which level this sub-column shows ("micro", "task", "high")
@@ -144,10 +145,20 @@ class Workflow:
         columns, first, last = [], [], []
         for c in self.columns:
             first.append(len(columns))
-            for lv in ([""] if c.kind == "handoff" else levels):
-                cells: list[Cell | None] = []
-                for x in getattr(c, {"micro": "micro_cells", "high": "high_cells"}.get(lv, "cells")):
-                    cells += [x] + [None] * ((x.rows if lv != "micro" else 1) - 1)
+            if c.kind == "handoff":
+                columns.append(Column(c.kind, c.step, c.label, list(c.cells), sub=""))
+                last.append(len(columns) - 1)
+                continue
+            # Each row is a micro task; beside it, its task type and macro task ("" when it has none),
+            # drawn once at the first row they cover (None on the rows below)
+            tasks = [m.parent for m in c.micro_cells]
+            highs = [c.cells[t].parent if t >= 0 else -1 for t in tasks]
+            for lv in levels:
+                if lv == "micro":
+                    cells: list = list(c.micro_cells)
+                else:
+                    idx, src = (tasks, c.cells) if lv == "task" else (highs, c.high_cells)
+                    cells = ["" if i < 0 else None if r and idx[r - 1] == i else src[i] for r, i in enumerate(idx)]
                 columns.append(Column(c.kind, c.step, c.label, cells, sub=lv))
             last.append(len(columns) - 1)
         steps = [Step(s.label, first[s.start], last[s.end]) for s in self.steps]
@@ -169,7 +180,7 @@ class Workflow:
     def from_dict(cls, d: dict) -> "Workflow":
         cells = lambda xs: [Cell(str(x["name"]), str(x["hex"]), bool(x["known"]),
                                  [str(t) for t in x.get("tasks") or []], str(x.get("group") or ""),
-                                 max(1, int(x.get("rows") or 1))) for x in xs]
+                                 max(1, int(x.get("rows") or 1)), int(x.get("parent", -1))) for x in xs]
         columns = [Column(c["kind"], int(c["step"]), c["label"], cells(c["cells"]),
                           cells(c.get("highCells") or c["cells"]), cells(c.get("microCells") or c["cells"]))
                    for c in d["columns"]]
@@ -274,11 +285,11 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
 
     # Flatten rows into a sequence of entries. A task entry is
     # [kind, task type, step, macro task or "", micro tasks, orphan]; a handoff has no macro or micro tasks.
-    # An orphan is a micro task with no task type above it.
+    # An orphan is a micro task with no task type above it (e.g. SESSION_START): it shows as a micro task only.
     # A row with a task type starts a task; a row with only a micro task adds it to the task above.
     entries: list[list] = []
     step_idx, step_labels = -1, []
-    last_agent, inherited, orphans = None, 0, []
+    last_agent, inherited, orphans, seen_task = None, 0, [], False
     for r in rows[1:]:
         new_step = category == "tight" and get(r, 0)
         if new_step:
@@ -298,8 +309,9 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
                 kind = last_agent or "human"
                 inherited += 1
             last_agent = kind
-            if not task:  # a micro task with no task type above it stands in for its own task type
+            if not task and seen_task:  # micro tasks before the first task type (session events) need no note
                 orphans.append(micro)
+            seen_task = seen_task or bool(task)
             entries.append([kind, task or micro, step_idx, get(r, high_col) if high_col >= 0 else "",
                             [micro] if micro else [], not task])
         if hand:
@@ -315,8 +327,8 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
     if orphans:
         one = len(orphans) == 1
         warnings.append(f"{', '.join(dict.fromkeys(orphans))} {'has' if one else 'have'} no task type above "
-                        f"{'it' if one else 'them'}, so {'it stands' if one else 'they stand'} in for "
-                        f"{'its' if one else 'their'} own task type and macro task.")
+                        f"{'it' if one else 'them'} in {'its' if one else 'their'} column, so "
+                        f"{'it shows' if one else 'they show'} as {'a micro task' if one else 'micro tasks'} only.")
 
     # Group consecutive entries of the same kind within the same step
     counters = {"human": 0, "ai": 0, "handoff": 0}
@@ -338,6 +350,10 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
             counters[kind] += 1
             columns.append(Column(kind, step, f"{KIND_LABEL[kind]} #{counters[kind]}"))
         col = columns[-1]
+        if orphan:  # micro tasks only: no task type or macro task square
+            for m in micros:
+                col.micro_cells.append(cell(m))
+            continue
         x = cell(entry_name)
         col.cells.append(x)
         if kind == "handoff":
@@ -348,7 +364,7 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
         x.tasks, x.rows = [m for m in micros], max(1, len(micros))
         for m in micros or [None]:
             mx = cell(m) if m else Cell(x.name, x.hex, x.known)
-            mx.group = x.name
+            mx.group, mx.parent = x.name, len(col.cells) - 1
             col.micro_cells.append(mx)
         # A macro task covers the task rows below it until the next one is named.
         # Blank rows continue it while the agent stays the same (a new column starts a new square
@@ -356,7 +372,7 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
         if high or high_kind != kind:
             high_name = high
         high_kind = kind
-        if high_col >= 0 and not high_name and not orphan:  # orphans already have their own warning
+        if high_col >= 0 and not high_name:
             untyped += 1
         if high or new_col or not high_name:
             hx = cell(high_name or entry_name)
@@ -365,7 +381,7 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
         hx = col.high_cells[-1]
         hx.tasks.append(x.name)
         hx.rows += x.rows
-        x.group = hx.name
+        x.group, x.parent = hx.name, len(col.high_cells) - 1
     if unknown:
         warnings.append(f"No color is set for: {', '.join(unknown)}. These show as striped squares "
                         f"and export as {UNKNOWN_HEX}.")
