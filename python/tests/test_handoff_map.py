@@ -115,8 +115,10 @@ def test_micro_tasks():
     assert len(micro) == 25 and (micro[0].name, micro[0].hex, micro[0].group) == (
         "SCROLL_REFERENCE_DOC", "#40FFBF", "Consulting Degree Progress Record")
     assert [(x.name, x.rows) for x in human.high_cells] == [("Validating the course plan", 25)]
-    # A micro task with no task type above it stands in for its own task type
-    assert wf.columns[0].cells[0].name == "SESSION_START" and len(wf.warnings) == 1
+    # SESSION_START (before any task type) is a micro task only: no task type or macro task, no warning
+    ai = wf.columns[0]
+    assert [x.name for x in ai.micro_cells] == ["SESSION_START", "AI_WORK_NOTICE", "AI_CONTENT_OUTPUT"]
+    assert [x.name for x in ai.cells] == ["Black Box", "Black Box"] and not wf.warnings
     # Every micro, task and macro name in the example has a color
     assert all(x.known for lv in wf.levels for c in wf.at_level(lv).columns for x in c.cells)
 
@@ -125,6 +127,9 @@ def test_all_levels_view():
     wf = load(MICRO).at_level("all")
     assert [(c.label, c.sub) for c in wf.columns[:5]] == [
         ("AI #1", "micro"), ("AI #1", "task"), ("AI #1", "high"), ("Handoff #1", ""), ("Human #1", "micro")]
+    # SESSION_START has nothing beside it
+    assert [x.name for x in wf.columns[0].cells] == ["SESSION_START", "AI_WORK_NOTICE", "AI_CONTENT_OUTPUT"]
+    assert wf.columns[1].cells[0] == "" == wf.columns[2].cells[0] and wf.columns[2].cells[2] is None
     task, macro = wf.columns[5].cells, wf.columns[6].cells
     assert len(task) == len(macro) == 25  # one row per micro task
     assert task[0].rows == 2 and task[1] is None and task[2].name == "Cross-Checking Against Degree Progress"
@@ -139,6 +144,15 @@ def test_micro_example_matches_browser_export():
         assert tab_csv(t) == (GOLDEN / f"{file_base(t)}-visual.csv").read_bytes().decode()
     assert [file_base(t) for t in tab_levels(tab)] == [
         "micro-example", "micro-example-micro", "micro-example-macro", "micro-example-all-levels"]
+
+
+def test_micro_task_after_a_handoff_has_no_task_type():
+    rows = parse_csv("Loose,Micro Task,Task Type,Macro Task,Handoff Type,Agent\n"
+                     ",TYPE_PROMPT,Drafting Prompt,Decision Making,,Human\n,,,,General Request,\n,CURSOR_IDLE,,,,Human\n")
+    wf = build_workflow(rows, "l")
+    assert [c.label for c in wf.columns] == ["Human #1", "Handoff #1", "Human #2"]
+    assert wf.columns[2].cells == [] and [x.name for x in wf.columns[2].micro_cells] == ["CURSOR_IDLE"]
+    assert any("CURSOR_IDLE" in w and "micro task only" in w for w in wf.warnings)
 
 
 def test_png_renders():
