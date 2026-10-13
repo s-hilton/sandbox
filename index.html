@@ -247,7 +247,7 @@ const CANON = new Map();
 TYPE_GROUPS.forEach(([,items]) => items.forEach(([n,h]) => { COLORS.set(norm(n), "#"+h); CANON.set(norm(n), n); }));
 const UNKNOWN_HEX = "#FFFFFF";
 const HIGH_HEADER = /macro|high|parent/;  // header of the macro (higher-level) task type column
-const MICRO_HEADER = /micro/;  // header of the micro task column
+const MICRO_HEADER = /mi(cr|rc)o/;  // header of the micro task column (also the common misspelling "Mirco")
 
 /* ---------- Parsing ---------- */
 function parseCSV(text){
@@ -280,10 +280,18 @@ function buildWorkflow(rows, name){
   const catRaw = norm(header[0]);
   // Optional columns: Micro Task (left of Task Type) and Macro Task (between Task Type and Handoff Type)
   const find = (re, skip = []) => header.findIndex((h, i) => i && !skip.includes(i) && re.test(norm(h)));
-  const microCol = find(MICRO_HEADER), highCol = find(HIGH_HEADER, [microCol]), extra = [microCol, highCol];
+  let microCol = find(MICRO_HEADER);
+  const highCol = find(HIGH_HEADER, [microCol]);
+  // Task Type: the remaining "task" header, preferring one that says "type"; if another "task" header is
+  // left over and no micro column was found by name, that one is the micro task column
+  const tasks = header.map((h, i) => i).filter(i => i && i !== microCol && i !== highCol && /task/.test(norm(header[i])));
+  const typed = tasks.find(i => /type/.test(norm(header[i]))), taskIdx = typed ?? (tasks.length ? tasks[0] : -1);
+  if (microCol < 0 && tasks.length > 1) microCol = tasks.find(i => i !== taskIdx);
+  if (microCol >= 0 && !/micro/.test(norm(header[microCol]))) warnings.push(`Read the “${header[microCol]}” column as the Micro Task column.`);
+  const extra = [microCol, highCol];
   const findCol = (re, fallback) => { const i = find(re, extra); return i >= 0 ? i : fallback; };
-  const taskCol = findCol(/task/, 1), handCol = findCol(/hand/, 2), agentCol = findCol(/agent/, 3);
-  if (find(/task/, extra) < 0) warnings.push("No “Task Type” header found, so columns B, C and D were read as Task Type, Handoff Type and Agent.");
+  const taskCol = taskIdx >= 0 ? taskIdx : 1, handCol = findCol(/hand/, 2), agentCol = findCol(/agent/, 3);
+  if (!tasks.length) warnings.push("No “Task Type” header found, so columns B, C and D were read as Task Type, Handoff Type and Agent.");
 
   const hasStepLabels = rows.slice(1).some(r => (r[0]||"") !== "");
   let category;

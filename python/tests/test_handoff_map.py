@@ -155,6 +155,22 @@ def test_micro_task_after_a_handoff_has_no_task_type():
     assert any("CURSOR_IDLE" in w and "micro task only" in w for w in wf.warnings)
 
 
+def test_misspelled_micro_header():
+    # "Mirco Task" (a common typo) is the micro column, not the task type column
+    for header in ("Mirco Task", "Actions"):
+        rows = parse_csv(f"Loose,{header},Task Type,Macro Task,Handoff Type,Agent\n"
+                         ",TYPE_PROMPT,Drafting Prompt,Decision Making,,Human\n,SEND_PROMPT,,,,Human\n")
+        wf = build_workflow(rows, "l")
+        assert [x.name for x in wf.columns[0].cells] == ["Drafting Prompt"]
+        if header == "Mirco Task":
+            assert wf.has_micro and wf.columns[0].cells[0].tasks == ["TYPE_PROMPT", "SEND_PROMPT"]
+            assert any("Mirco Task" in w for w in wf.warnings)
+    # Two "task" columns without "micro" in either: the one that says "type" is Task Type
+    rows = parse_csv("Loose,Small Task,Task Type,Handoff Type,Agent\n,TYPE_PROMPT,Drafting Prompt,,Human\n")
+    wf = build_workflow(rows, "l")
+    assert wf.has_micro and wf.columns[0].cells[0].name == "Drafting Prompt"
+
+
 def test_png_renders():
     tabs = make_tabs([load(EXAMPLE), load(HERE / "loose-example.csv")])
     img = Image.open(io.BytesIO(tab_png(tabs[-1])))
