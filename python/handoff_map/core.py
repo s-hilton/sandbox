@@ -52,7 +52,7 @@ LEVELS = ("micro", "task", "high", "all")
 LEVEL_NAME = {"micro": "Micro", "task": "Task", "high": "Macro"}
 UNKNOWN_HEX = "#FFFFFF"
 HIGH_HEADER = r"macro|high|parent"  # header of the macro (higher-level) task type column
-MICRO_HEADER = r"micro"  # header of the micro task column
+MICRO_HEADER = r"mi(cr|rc)o"  # header of the micro task column (also the common misspelling "Mirco")
 KIND_LABEL = {"human": "Human", "ai": "AI", "handoff": "Handoff"}
 
 
@@ -261,14 +261,22 @@ def build_workflow(rows: list[list[str]], name: str) -> Workflow:
                                           if i and i not in skip and re.search(pattern, norm(h))), -1)
     micro_col = find(MICRO_HEADER)
     high_col = find(HIGH_HEADER, (micro_col,))
+    # Task Type: the remaining "task" header, preferring one that says "type"; if another "task" header is
+    # left over and no micro column was found by name, that one is the micro task column
+    tasks = [i for i, h in enumerate(header) if i and i not in (micro_col, high_col) and re.search("task", norm(h))]
+    task_col = next((i for i in tasks if re.search("type", norm(header[i]))), tasks[0] if tasks else -1)
+    if micro_col < 0 and len(tasks) > 1:
+        micro_col = next(i for i in tasks if i != task_col)
+    if micro_col >= 0 and "micro" not in norm(header[micro_col]):
+        warnings.append(f"Read the “{header[micro_col]}” column as the Micro Task column.")
     extra = (micro_col, high_col)
 
     def find_col(pattern: str, fallback: int) -> int:
         i = find(pattern, extra)
         return i if i >= 0 else fallback
 
-    task_col, hand_col, agent_col = find_col("task", 1), find_col("hand", 2), find_col("agent", 3)
-    if find("task", extra) < 0:
+    task_col, hand_col, agent_col = task_col if task_col >= 0 else 1, find_col("hand", 2), find_col("agent", 3)
+    if not tasks:
         warnings.append("No “Task Type” header found, so columns B, C and D were read as "
                         "Task Type, Handoff Type and Agent.")
 
