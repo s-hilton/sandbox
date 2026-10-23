@@ -1,0 +1,54 @@
+TIGHT,,,,,,
+Time,Phase,Actions,Task Types,Handoff Type,Reasoning to Move Forward,Agent
+34.41,Step 1: Propose,SESSION_START,,,,
+34.42,,AI_WORKING,BLACK_BOX,,,AI
+34.53,,AI_OUTPUT,BLACK_BOX,,,AI
+,,,,Direction Check,,
+,,,,Intermediate Product,,
+35.01,,CLOSE_VIEW,CHECK_AI_ITSELF,,,Human
+35.02,,READ_AI_OUTPUT,,,,Human
+35.03,,OPEN_AI_REASONING,,,,Human
+35.59,,COMPOSE_PROMPT,CORRECT_AI,,,Human
+37.2,,SEND_PROMPT,,,,
+,,,,Specific Request,,
+37.21,,AI_WORKING,BLACK_BOX,,,AI
+37.22,,AI_OUTPUT,BLACK_BOX,,,AI
+,,,,Direction Check,,
+,,,,Intermediate Product,,
+37.24,,OPEN_AI_REASONING,UNDERSTAND_OUTPUT,,,Human
+37.58,,READ_AI_OUTPUT,CHECK_AI_ITSELF,,,Human
+38.06,,COMPOSE_PROMPT,REDIRECT_OR_DELEGATE,,,Human
+38.2,,SEND_PROMPT,,,,
+,,,,General Request,,
+38.27,,AI_WORKING,BLACK_BOX,,,AI
+38.29,,AI_OUTPUT,BLACK_BOX,,,AI
+,,,,Direction Check,,
+,,,,Intermediate Product,,
+38.32,,OPEN_AI_REASONING,CHECK_AI_ITSELF,,,Human
+38.41,,APPROVE,AUTHORIZE,,AI_ASSURANCE,Human
+,Step 2: Offerings,,,Direction to Proceed,,
+38.42,,AI_WORKING,BLACK_BOX,,,AI
+38.44,,AI_OUTPUT,BLACK_BOX,,,AI
+,,,,Direction Check,,
+,,,,Intermediate Product,,
+38.46,,APPROVE,AUTHORIZE,,CARRIED_TRUST,Human
+,Step 3: Schedule,,,Direction to Proceed,,
+38.48,,AI_WORKING,BLACK_BOX,,,AI
+38.5,,AI_OUTPUT,BLACK_BOX,,,AI
+,,,,Direction Check,,
+,,,,Intermediate Product,,
+38.53,,OPEN_SCHEDULE_VIEW,UNDERSTAND_OUTPUT,,,Human
+38.57,,APPROVE,AUTHORIZE,,LOOKS_RIGHT,Human
+,Step 4: Prereqs,,,Direction to Proceed,,
+38.58,,AI_WORKING,BLACK_BOX,,,AI
+39,,AI_OUTPUT,BLACK_BOX,,,AI
+,,,,Direction Check,,
+,,,,Intermediate Product,,
+39.02,,APPROVE,AUTHORIZE,,CARRIED_TRUST,Human
+,Step 5: Submit,,,Direction to Proceed,,
+39.03,,AI_WORKING,BLACK_BOX,,,AI
+39.05,,AI_OUTPUT,BLACK_BOX,,,AI
+,,,,Direction Check,,
+,,,,Intermediate Product,,
+39.09,,APPROVE,AUTHORIZE,,CARRIED_TRUST,Human
+39.1,,APPROVE,,,,Human

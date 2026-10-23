@@ -34,7 +34,7 @@ body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);padding-in
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-.app{display:grid;grid-template-columns:minmax(280px,var(--left,50%)) 8px minmax(0,1fr);gap:0;height:100%;min-height:560px}
+.app{display:grid;grid-template-columns:minmax(280px,var(--left,34%)) 8px minmax(0,1fr);gap:0;height:100%;min-height:560px}
 .pane{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:0;display:flex;flex-direction:column;overflow:hidden}
 .splitter{cursor:col-resize;display:flex;align-items:center;justify-content:center}
 .splitter::after{content:"";width:2px;height:40px;border-radius:2px;background:var(--line-strong)}
@@ -81,7 +81,8 @@ details.key summary{cursor:pointer;font:500 11px/1 var(--mono);letter-spacing:.0
 .key-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 16px;margin-top:10px}
 .key-item{display:flex;align-items:center;gap:8px;font-size:12.5px}
 .key-item code{font:11px var(--mono);color:var(--muted);margin-left:auto}
-.key-group{grid-column:1/-1;font:500 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+.key-item.fam{font-weight:600;margin-top:4px}
+.key-group{grid-column:1/-1;font:500 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:12px}
 .sw{width:14px;height:14px;border-radius:2px;flex:none;border:1px solid rgba(0,0,0,.12)}
 
 .tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:thin}
@@ -90,6 +91,7 @@ details.key summary{cursor:pointer;font:500 11px/1 var(--mono);letter-spacing:.0
 .tab[aria-selected="true"]{background:var(--panel);border-color:var(--line);color:var(--ink);font-weight:500;box-shadow:0 1px 0 var(--panel)}
 .tab .dot{width:7px;height:7px;border-radius:50%}
 .tab .dot.tight{background:var(--tight)} .tab .dot.loose{background:var(--loose)} .tab .dot.all{background:var(--accent)}
+.tab .dot.stats{background:var(--ink);border-radius:1px}
 .tab .x{font-size:13px;padding:0 4px}
 
 .results{flex:1;overflow:auto;padding:18px 20px 28px;display:flex;flex-direction:column;gap:18px}
@@ -116,22 +118,23 @@ table.viz th.lvl{font:600 10.5px var(--sans);height:22px}
 .step{height:26px;margin:0 3px;border:1.5px solid var(--ink);border-bottom:0;display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 4px;font:500 11px var(--sans);overflow:hidden}
 .step span.lbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .step i{font:10px var(--mono);font-style:normal;color:var(--muted)}
-.sq{display:block;width:18px;height:18px;margin:auto;border-radius:2px;border:1px solid rgba(0,0,0,.14)}
+.sq{display:block;width:18px;height:18px;margin:auto;border-radius:2px;border:1px solid rgba(0,0,0,.14);position:relative}
+/* Reasoning to move forward: a dot on the corner of the square it was coded on */
+.rb{position:absolute;right:-6px;top:-6px;width:10px;height:10px;border-radius:50%;border:1.5px solid var(--sheet)}
 table.viz td.hit{cursor:default}
 table.viz td.hit:hover,table.viz td.hit.on{background:var(--accent-soft)}
 table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-shadow:0 0 0 2px var(--panel),0 0 0 3.5px var(--ink)}
 .sq{transition:transform .1s}
-.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--panel);border-radius:6px;padding:8px 10px;max-width:280px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:12.5px;line-height:1.35}
-.tip-top{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--panel);border-radius:6px;padding:8px 10px;max-width:300px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:12.5px;line-height:1.35}
+.tip-top{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;overflow-wrap:anywhere}
 .tip-top .sw{border-color:rgba(255,255,255,.35)}
-.tip-meta{margin-top:4px;font:11px/1.5 var(--mono);opacity:.8}
+.tip-meta{margin-top:4px;font:11px/1.5 var(--mono);opacity:.85}
 .sq.unknown{background:repeating-linear-gradient(45deg,#fff 0 3px,#bbb 3px 5px)!important}
 
 .legend{display:flex;flex-wrap:wrap;gap:6px 16px}
-/* Micro / task / macro / all levels switch on each map */
 .block-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}
 .block-head .block-title{margin:0}
-.level{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden;flex:none}
+.level{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden;flex:0 1 auto;max-width:100%;flex-wrap:wrap}
 .level button{border:0;background:var(--panel);padding:3px 10px;font-size:12px;cursor:pointer;color:var(--muted)}
 .level button+button{border-left:1px solid var(--line-strong)}
 .level button:hover{color:var(--ink)}
@@ -139,12 +142,82 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
 .legend .key-item code{margin-left:0}
 .hint{color:var(--muted);font-size:12.5px;margin:0}
 
+/* ---------- Statistics tab ---------- */
+.st-sec{border:1px solid var(--line);border-radius:10px;padding:16px 18px 18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.st-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px 16px;flex-wrap:wrap}
+.st-sec .st-head h3{margin:0;font:600 15.5px/1.3 var(--sans);letter-spacing:0;text-transform:none;color:var(--ink);text-wrap:balance}
+.st-head .num{font:500 11px var(--mono);color:var(--muted);display:block;margin-bottom:3px;letter-spacing:.06em;text-transform:uppercase}
+.st-ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.st-q{color:var(--muted);margin:0;max-width:85ch}
+.st-sub{font-weight:600;font-size:13px;margin:4px 0 0}
+.result{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:0 6px 6px 0;font-size:13px;margin:0;max-width:95ch}
+.result.weak{border-left-color:var(--line-strong);background:var(--bg)}
+.caveat{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:10px 14px;font-size:12.5px;margin:0}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tile{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.tile b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile span{color:var(--muted);font-size:12px}
+.tw{overflow-x:auto;max-width:100%}
+table.st{border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+table.st th,table.st td{padding:5px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:top}
+table.st th:first-child,table.st td:first-child{text-align:left}
+table.st td.l,table.st th.l{text-align:left}
+table.st td.wrap{white-space:normal;min-width:180px;max-width:320px}
+table.st th{font:500 10.5px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-bottom-color:var(--line-strong)}
+table.st tr.grp td{font-weight:600;padding-top:10px}
+table.st .sig{font-weight:600;color:var(--ink)}
+table.st .dim{color:var(--muted)}
+.nm{display:inline-flex;align-items:center;gap:6px}
+.nm .sw{width:11px;height:11px}
+.bars{display:flex;flex-direction:column;gap:5px}
+.bar-row{display:grid;grid-template-columns:minmax(90px,170px) minmax(0,1fr) 44px;align-items:center;gap:10px;font-size:12.5px}
+.bar-row .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-row.cond .lab{font-weight:600}
+.bar-row.sess{font-size:12px;color:var(--muted)}
+.bar-row.sess .lab{padding-left:12px}
+.bar-row .n{color:var(--muted);font-size:11.5px;text-align:right}
+.bar{display:flex;gap:2px;height:16px;min-width:0}
+.bar-row.cond .bar{height:20px}
+.bar span{height:100%;min-width:2px;cursor:default}
+.bar span:first-child{border-radius:4px 0 0 4px} .bar span:last-child{border-radius:0 4px 4px 0} .bar span:only-child{border-radius:4px}
+.bar span:hover{outline:2px solid var(--ink);outline-offset:1px}
+.heats{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;overflow-x:auto;max-width:100%}
+table.heat{border-collapse:separate;border-spacing:2px;font-size:11.5px;font-variant-numeric:tabular-nums}
+table.heat th{font:500 11px var(--sans);text-align:right;padding:0 6px 0 0;white-space:nowrap}
+table.heat thead th{text-align:center;padding:0 0 2px}
+table.heat td{width:34px;height:26px;text-align:center;border-radius:3px;background:var(--bg);cursor:default}
+table.heat td:hover{outline:2px solid var(--ink)}
+table.heat caption{text-align:left;font-weight:600;font-size:12.5px;padding-bottom:6px}
+.plot{position:relative;padding-bottom:22px;--labw:170px}
+.prow{display:grid;grid-template-columns:var(--labw) minmax(0,1fr);gap:10px;align-items:center;height:26px;font-size:12.5px}
+.prow .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track{position:relative;height:100%;border-bottom:1px solid var(--line)}
+.pt{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;border:2px solid var(--panel);cursor:default}
+.pt:hover{box-shadow:0 0 0 2px var(--ink)}
+.med{position:absolute;top:4px;bottom:4px;width:2px;margin-left:-1px;background:var(--ink);opacity:.55}
+.axis{position:relative;height:18px;margin-left:calc(var(--labw) + 10px);font:10.5px var(--mono);color:var(--muted)}
+.axis span{position:absolute;transform:translateX(-50%);top:3px;white-space:nowrap}
+.gridl{position:absolute;top:0;bottom:22px;width:1px;background:var(--line)}
+.tl-row{display:grid;grid-template-columns:var(--labw) minmax(0,1fr);gap:10px;align-items:center;font-size:12.5px;min-height:38px}
+.tl-row .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;flex-direction:column;gap:2px}
+.tl-track{position:relative;height:30px}
+.seg{position:absolute;top:12px;height:16px;border-right:1px solid var(--panel);cursor:default}
+.seg:hover{outline:2px solid var(--ink);z-index:2}
+.mark{position:absolute;top:0;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);border:1.5px solid var(--panel);cursor:default;z-index:3}
+.mark:hover{box-shadow:0 0 0 2px var(--ink)}
+.cond-key{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;margin-right:14px}
+.cond-key i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.methods{color:var(--muted);font-size:12.5px;margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;max-width:95ch}
+.methods b{color:var(--ink);font-weight:600}
+
 @media (max-width: 820px){
   body{height:auto}
   .app{grid-template-columns:1fr;height:auto;gap:16px}
   .splitter{display:none}
   .pane{overflow:visible}
   .results,.inputs{overflow:visible}
+  .bar-row{grid-template-columns:90px minmax(0,1fr) 40px}
+  .plot{--labw:90px}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
@@ -159,14 +232,14 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
       <section>
         <h3>Upload transcripts</h3>
         <label class="drop" id="drop" for="file-input">
-          <strong>Drop CSV files here</strong>
-          <p>The first cell names the workflow category (Tight or Loose), followed by Micro Task (optional), Task Type, Macro Task (optional), Handoff Type and Agent columns. Tight workflows list step labels down the first column. Excel files (.xlsx) also work.</p>
+          <strong>Drop coded transcripts here</strong>
+          <p>The first cell says TIGHT or LOOSE. The header row below it has Time, Phase, Actions, Task Types, Handoff Type, Reasoning to Move Forward and Agent. Action and task families are filled in from the codebook. Numbers (.numbers), Excel (.xlsx) and CSV files all work.</p>
           <span class="row" style="margin-top:6px">
             <span class="btn primary" role="button">Choose files</span>
             <span class="hint">Each file opens in its own tab.</span>
           </span>
         </label>
-        <input id="file-input" type="file" accept=".csv,.xlsx,.xls,text/csv" multiple hidden>
+        <input id="file-input" type="file" accept=".csv,.xlsx,.xls,.numbers,text/csv" multiple hidden>
       </section>
 
       <section>
@@ -182,7 +255,7 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
         <div class="dl-grid">
           <div class="dl-card">
             <strong id="dl-current-title">Current tab</strong>
-            <p>The CSV holds one column per group, with each square stored as its hex color code. The PNG is the picture shown on the right. Workflows with micro or macro tasks also save those versions and an all-levels version (ending in <code>-micro</code>, <code>-macro</code> and <code>-all-levels</code>).</p>
+            <p id="dl-current-desc">The CSV holds one column per group, with each square stored as its hex color code. The PNG is the picture shown on the right. Every level is saved: task types, task families, actions, action families and all levels side by side.</p>
             <div class="row">
               <button class="btn" id="dl-csv" type="button">Download CSV</button>
               <button class="btn" id="dl-png" type="button">Download PNG</button>
@@ -220,34 +293,73 @@ table.viz td.hit:hover .sq,table.viz td.hit.on .sq{transform:scale(1.15);box-sha
 <div class="tip" id="tip" role="tooltip" hidden></div>
 
 <script>
-const EXAMPLE_CSV = "Loose,Micro Task,Task Type,Macro Task,Handoff Type,Agent\n,SESSION_START,,,,AI\n,AI_WORK_NOTICE,Black Box,Black Box,,AI\n,AI_CONTENT_OUTPUT,Black Box,,,AI\n,,,,Direction to Check,\n,,,,Complete Product,\n,SCROLL_REFERENCE_DOC,Consulting Degree Progress Record,Validating the Course Plan,,Human\n,HOVER_REFERENCE_DOC,,,,Human\n,SCROLL_REFERENCE_DOC,Cross-Checking Against Degree Progress,,,Human\n,CURSOR_TRANSIT,,,,Human\n,CURSOR_TRANSIT,Consulting Course Sequence Guide,,,Human\n,TAB_SWITCH,,,,Human\n,PANEL_EXPAND,,,,Human\n,PANEL_EXPAND,,,,Human\n,OPEN_RESOURCE,,,,Human\n,CLOSE_RESOURCE,,,,Human\n,OPEN_RESOURCE,,,,Human\n,HOVER_REFERENCE_DOC,,,,Human\n,CURSOR_TRANSIT,,,,Human\n,CLOSE_RESOURCE,,,,Human\n,HOVER_AI_OUTPUT,Cross-Checking Against Recommended Sequence,,,Human\n,OPEN_RESOURCE,,,,Human\n,HOVER_REFERENCE_DOC,,,,Human\n,CLOSE_RESOURCE,,,,Human\n,SCROLL_AI_OUTPUT,Reviewing Proposed Calendar,,,Human\n,EXPAND_SCHEDULE_CALENDAR,,,,Human\n,SCROLL_AI_OUTPUT,Pause,,,Human\n,TYPE_PROMPT,Drafting Prompt,,,Human\n,SEND_PROMPT,,,,Human\n,TAB_SWITCH,Consulting Degree Progress Record,,,Human\n,SCROLL_REFERENCE_DOC,,,,Human\n,,,,Specific Request,\n,AI_WORK_NOTICE,Black Box,Black Box,,AI\n,AI_CONTENT_OUTPUT,Black Box,,,AI\n,,,,Direction to Check,\n,,,,Complete Product,\n,EXPAND_PLAN_DIFF,Reviewing plan Revisions,Reviewing and refining course recommendations,,Human\n,CURSOR_TRANSIT,Reviewing Proposed Calendar,Evaluating the proposed calendar,,Human\n,SCROLL_AI_OUTPUT,,,,Human\n,EXPAND_SCHEDULE_CALENDAR,,,,Human\n,SCROLL_AI_OUTPUT,Pause,Reviewing and refining course recommendations,,Human\n,TYPE_PROMPT,Drafting Prompt,,,Human\n,SEND_PROMPT,,,,Human\n,,,,Specific Request,\n,AI_WORK_NOTICE,Black Box,Black Box,,AI\n,AI_CONTENT_OUTPUT,Black Box,,,AI\n,,,,Direction to Check,\n,,,,Complete Product,\n,CURSOR_TRANSIT,Reviewing Plan Revisions,Validating the course plan,,Human\n,CURSOR_TRANSIT,Cross-Checking Against Degree Progress,,,Human\n,SCROLL_AI_OUTPUT,Reviewing Plan Revisions,,,Human\n,SCROLL_AI_OUTPUT,Pause,,,Human\n,SCROLL_AI_OUTPUT,Reviewing Proposed Calendar,Evaluating the proposed calendar,,Human\n,EXPAND_SCHEDULE_CALENDAR,,,,Human\n,SCROLL_AI_OUTPUT,Drafting Prompt,,,Human\n,TYPE_PROMPT,,,,Human\n,SEND_PROMPT,,,,Human\n,,,,General Request,\n,AI_WORK_NOTICE,Black Box,Black Box,,AI\n,AI_CONTENT_OUTPUT,Black Box,,,AI\n,,,,Direction to Check,\n,,,,Complete Product,\n,SCROLL_AI_OUTPUT,Reviewing Proposed Calendar,Evaluating the proposed calendar,,Human\n,EXPAND_SCHEDULE_CALENDAR,,,,Human\n,SCROLL_AI_OUTPUT,Reviewing Proposed Courses,Reviewing and refining course recommendations,,Human\n,SCROLL_AI_OUTPUT,,,,Human\n,CLICK_AI_OUTPUT_ITEM,,,,Human\n,CLOSE_RESOURCE,,,,Human\n,CLICK_AI_OUTPUT_ITEM,,,,Human\n,CLOSE_RESOURCE,,,,Human\n,SCROLL_AI_OUTPUT,Submitting Final Plan,Finalizing the course plan,,Human\n,ADVANCE_STEP,,,,Human\n,SUBMIT_FINAL,,,,Human\n";
-
-/* ---------- Color key ---------- */
-const TYPE_GROUPS = [
-  ["Reviewing", [["Reviewing AI Reasoning","FFC5B8"],["Reviewing Proposed Courses","FF7A5C"],["Reviewing Proposed Calendar","FF542E"],["Reviewing Plan Revisions","FF2F00"],["Reviewing AI Self-Check Results","D12600"],["Assess Available Resources","A31E00"]]],
-  ["Consulting", [["Consulting Degree Progress Record","FFFDB8"],["Consulting Course Sequence Guide","FFFA5C"]]],
-  ["AI work", [["Black Box","FFB8FB"]]],
-  ["Cross-checking", [["Cross-Checking Prerequisites","D8FFB8"],["Cross-Checking Course Availability","A5FF5C"],["Cross-Checking Credit Load","8CFF2E"],["Cross-Checking Against AI Reasoning","73FF00"],["Cross-Checking Against Degree Progress","5ED100"],["Cross-Checking Against Recommended Sequence","357500"]]],
-  ["Other human tasks", [["Pause","C4C4C4"],["Drafting Prompt","525252"],["Approving","FFC28A"],["Submitting Final Plan","FF7B00"],["Orienting to Next Step","00FFEA"]]],
-  ["Handoffs", [["General Request","9FABEA"],["Specific Request","7486E0"],["Direction to Check","546AD9"],["Direction to Proceed","2E49D1"],["Intermediate Product","263CAB"],["Complete Product","152260"]]],
-  // Macro tasks. A name that is also a task type above (Black Box, Submitting Final Plan) keeps that color.
-  ["Macro tasks", [["Reviewing and refining course recommendations","ADFFD5"],["Validating the course plan","ADCEFF"],["Evaluating the proposed schedule","FFF0AD"],["Evaluating the proposed calendar","FFF0AD"],["Decision Making","FFADBC"],["Finalizing the course plan","DBADFF"]]],
-  // Micro tasks: neon colors, none used above. Related actions share a hue family.
-  ["Micro tasks · AI and system", [["SESSION_START","FF00DD"],["AI_WORK_NOTICE","E600B8"],["AI_CONTENT_OUTPUT","FF40B2"],["ERROR_POPUP_DISPLAYED","E6003D"]]],
-  ["Micro tasks · navigation", [["TAB_SWITCH","0000FF"],["PANEL_EXPAND","0044FF"],["PANEL_COLLAPSE","4073FF"],["OPEN_RESOURCE","0099FF"],["CLOSE_RESOURCE","00A8E6"]]],
-  ["Micro tasks · expanding", [["EXPAND_PLAN_DIFF","8800FF"],["EXPAND_AI_REASONING","A640FF"],["EXPAND_SCHEDULE_CALENDAR","DD00FF"]]],
-  ["Micro tasks · reading", [["SCROLL_AI_OUTPUT","00DDFF"],["SCROLL_REFERENCE_DOC","40FFBF"],["HOVER_AI_OUTPUT","00E68A"],["HOVER_REFERENCE_DOC","00FF88"],["CLICK_AI_OUTPUT_ITEM","00FF66"]]],
-  ["Micro tasks · cursor", [["CURSOR_TRANSIT","00E61F"],["CURSOR_IDLE","A8E600"]]],
-  ["Micro tasks · prompting", [["TYPE_PROMPT","FFDD00"],["EDIT_PROMPT_TEXT","DDFF00"],["SEND_PROMPT","FFBB00"]]],
-  ["Micro tasks · steps", [["ADVANCE_STEP","FFA640"],["RETURN_STEP","FF8040"],["SUBMIT_FINAL","FF0077"]]],
+const EXAMPLES = [
+  ["Example tight session.csv", "TIGHT,,,,,,\nTime,Phase,Actions,Task Types,Handoff Type,Reasoning to Move Forward,Agent\n34.41,Step 1: Propose,SESSION_START,,,,\n34.42,,AI_WORKING,BLACK_BOX,,,AI\n34.53,,AI_OUTPUT,BLACK_BOX,,,AI\n,,,,Direction Check,,\n,,,,Intermediate Product,,\n35.01,,CLOSE_VIEW,CHECK_AI_ITSELF,,,Human\n35.02,,READ_AI_OUTPUT,,,,Human\n35.03,,OPEN_AI_REASONING,,,,Human\n35.59,,COMPOSE_PROMPT,CORRECT_AI,,,Human\n37.2,,SEND_PROMPT,,,,\n,,,,Specific Request,,\n37.21,,AI_WORKING,BLACK_BOX,,,AI\n37.22,,AI_OUTPUT,BLACK_BOX,,,AI\n,,,,Direction Check,,\n,,,,Intermediate Product,,\n37.24,,OPEN_AI_REASONING,UNDERSTAND_OUTPUT,,,Human\n37.58,,READ_AI_OUTPUT,CHECK_AI_ITSELF,,,Human\n38.06,,COMPOSE_PROMPT,REDIRECT_OR_DELEGATE,,,Human\n38.2,,SEND_PROMPT,,,,\n,,,,General Request,,\n38.27,,AI_WORKING,BLACK_BOX,,,AI\n38.29,,AI_OUTPUT,BLACK_BOX,,,AI\n,,,,Direction Check,,\n,,,,Intermediate Product,,\n38.32,,OPEN_AI_REASONING,CHECK_AI_ITSELF,,,Human\n38.41,,APPROVE,AUTHORIZE,,AI_ASSURANCE,Human\n,Step 2: Offerings,,,Direction to Proceed,,\n38.42,,AI_WORKING,BLACK_BOX,,,AI\n38.44,,AI_OUTPUT,BLACK_BOX,,,AI\n,,,,Direction Check,,\n,,,,Intermediate Product,,\n38.46,,APPROVE,AUTHORIZE,,CARRIED_TRUST,Human\n,Step 3: Schedule,,,Direction to Proceed,,\n38.48,,AI_WORKING,BLACK_BOX,,,AI\n38.5,,AI_OUTPUT,BLACK_BOX,,,AI\n,,,,Direction Check,,\n,,,,Intermediate Product,,\n38.53,,OPEN_SCHEDULE_VIEW,UNDERSTAND_OUTPUT,,,Human\n38.57,,APPROVE,AUTHORIZE,,LOOKS_RIGHT,Human\n,Step 4: Prereqs,,,Direction to Proceed,,\n38.58,,AI_WORKING,BLACK_BOX,,,AI\n39,,AI_OUTPUT,BLACK_BOX,,,AI\n,,,,Direction Check,,\n,,,,Intermediate Product,,\n39.02,,APPROVE,AUTHORIZE,,CARRIED_TRUST,Human\n,Step 5: Submit,,,Direction to Proceed,,\n39.03,,AI_WORKING,BLACK_BOX,,,AI\n39.05,,AI_OUTPUT,BLACK_BOX,,,AI\n,,,,Direction Check,,\n,,,,Intermediate Product,,\n39.09,,APPROVE,AUTHORIZE,,CARRIED_TRUST,Human\n39.1,,APPROVE,,,,Human\n"],
+  ["Example loose session.csv", "LOOSE,,,,,,\nTime,Phase,Actions,Task Types,Handoff Type,Reasoning to Move Forward,Agent\n24.05,,SESSION_START,,,,\n24.05,,AI_WORKING,BLACK_BOX,,,AI\n24.14,,AI_OUTPUT,BLACK_BOX,,,AI\n,,,,Direction to Check,,\n,,,,Complete Product,,\n24.13,,PAUSE,NON_TASK,,,Human\n24.44,,READ_AI_OUTPUT,UNDERSTAND_OUTPUT,,,Human\n24.52,,READ_REFERENCE,CHECK_AGAINST_RECORDS,,,Human\n23.56,,PAUSE,,,,\n25.05,,OPEN_REFERENCE,BUILD_OWN_STANDARD,,,Human\n25.06,,OPEN_REFERENCE,,,,Human\n25.08,,OPEN_REFERENCE,,,,Human\n25.09,,OPEN_REFERENCE,,,,Human\n25.1,,CLOSE_VIEW,,,,Human\n25.11,,OPEN_REFERENCE,,,,Human\n25.13,,READ_REFERENCE,,,,Human\n25.3,,MOVE_BETWEEN_SOURCES,CHECK_AGAINST_RECORDS,,,Human\n25.36,,OPEN_REFERENCE,,,,Human\n25.37,,READ_REFERENCE,,,,Human\n25.4,,CLOSE_VIEW,,,,\n25.41,,OPEN_SCHEDULE_VIEW,UNDERSTAND_OUTPUT,,,Human\n25.47,,COMPOSE_PROMPT,CORRECT_AI,,,Human\n26.34,,SEND_PROMPT,,,,Human\n25.58,,READ_REFERENCE,,,,Human\n26.34,,,,Specific Request,,\n26.48,,AI_WORKING,BLACK_BOX,,,AI\n26.5,,AI_OUTPUT,BLACK_BOX,,,AI\n,,,,Direction to Check,,\n,,,,Complete Product,,\n26.5,,OPEN_AI_CHANGES,CHECK_AI_ITSELF,,,Human\n26.58,,READ_AI_OUPUT,UNDERSTAND_OUTPUT,,,Human\n27,,OPEN_ITEM_DETAIL,,,,\n27.06,,COMPOSE_PROMPT,REDIRECT_OR_DELEGATE,,,Human\n,,SEND_PROMPT,,,,\n27.06,,,,Specific Request,,\n27.44,,AI_WORKING,BLACK_BOX,,,AI\n27.45,,AI_OUTPUT,BLACK_BOX,,,AI\n,,,,Direction to Check,,\n,,,,Complete Product,,\n27.46,,MOVE_BETWEEN_SOURCES,CHECK_AGAINST_RECORDS,,,Human\n27.47,,OPEN_AI_CHANGES,UNDERSTAND_OUTPUT,,,Human\n28.11,,COMPOSE_PROMPT,NON_TASK,,,Human\n28.19,,OPEN_SCHEDULE_VIEW,UNDERSTAND_OUTPUT,,,Human\n28.28,,COMPOSE_PROMPT,REDIRECT_OR_DELEGATE,,,Human\n28.45,,SEND_PROMPT,,,,\n28.28,,,,General Request,,\n28.47,,AI_WORKING,BLACK_BOX,,,AI\n28.52,,AI_OUTPUT,BLACK_BOX,,,AI\n,,,,Direction to Check,,\n,,,,Complete Product,,\n28.53,,OPEN_AI_CHANGES,UNDERSTAND_OUTPUT,,,Human\n28.55,,OPEN_SCHEDULE_VIEW,,,,Human\n29.02,,READ_AI_OUTPUT,UNDERSTAND_OUTPUT,,,Human\n29.02,,OPEN_ITEM_DETAIL,,,,Human\n29.02,,CLOSE_VIEW,,,,Human\n29.03,,OPEN_ITEM_DETAIL,,,,Human\n29.06,,CLOSE_VIEW,,,,Human\n29.08,,APPROVE,AUTHORIZE,,OWN_CHECK,Human\n29.09,,APPROVE,,,,Human\n"],
 ];
-const norm = s => String(s ?? "").trim().replace(/\s+/g," ").toLowerCase().replace(/[‐-―]/g,"-");
-const COLORS = new Map();
-const CANON = new Map();
-TYPE_GROUPS.forEach(([,items]) => items.forEach(([n,h]) => { COLORS.set(norm(n), "#"+h); CANON.set(norm(n), n); }));
+
+/* ---------- Codebook ---------- */
+// Each family has its own hue and its members are lighter and darker shades of it, so the levels read together.
+// Family order is the order of stacked bars in the statistics tab (checked for colorblind separation).
+const ACTION_FAMILIES = [
+  ["LOOK_AT_AI", "EB6834", [["READ_AI_OUTPUT","F7B08A"],["OPEN_AI_REASONING","F28A55"],["OPEN_AI_CHANGES","D9541C"],["OPEN_SCHEDULE_VIEW","B23F0E"],["OPEN_ITEM_DETAIL","7F2C08"]]],
+  ["LOOK_AT_RECORDS", "1BAF7A", [["OPEN_REFERENCE","8EDDBE"],["READ_REFERENCE","0E7F57"]]],
+  ["CROSS_REFERENCE", "EDA100", [["MOVE_BETWEEN_SOURCES","FFC94D"]]],
+  ["HOUSEKEEPING", "008300", [["CLOSE_VIEW","7CC47C"],["PAUSE","005C00"]]],
+  ["TALK_TO_AI", "2A78D6", [["COMPOSE_PROMPT","8DB8EE"],["SEND_PROMPT","1A4F99"]]],
+  ["AI_OR_SYSTEM", "E87BA4", [["SESSION_START","F7C6DA"],["AI_WORKING","F09BBE"],["AI_OUTPUT","C9487F"],["SYSTEM_ERROR","E11D2E"]]],
+  ["CONTROL_WORKFLOW", "6250D6", [["APPROVE","4A35B8"],["GO_BACK","A99CEB"]]],
+];
+// NON_TASK and BLACK_BOX are both a task type and a task family, so they keep one color
+const TASK_FAMILIES = [
+  ["GATHER", "2C7FE0", [["UNDERSTAND_OUTPUT","9CC4F2"],["BUILD_OWN_STANDARD","1B5DAE"]]],
+  ["JUDGE", "F0A30A", [["CHECK_AGAINST_RECORDS","FFD166"],["CHECK_AI_ITSELF","D98E00"],["JUDGE_BY_FEEL","9E6500"]]],
+  ["STEER", "6B4FE0", [["CORRECT_AI","B3A5F2"],["REDIRECT_OR_DELEGATE","4529B5"]]],
+  ["PROCEED", "0A8A0A", [["AUTHORIZE","5DBB5D"]]],
+  ["NON_TASK", "C4C4C4", [["NON_TASK","C4C4C4"]]],
+  ["BLACK_BOX", "F5A3C7", [["BLACK_BOX","F5A3C7"]]],
+];
+const REASONS = [["OWN_CHECK","00802B"],["PRIOR_CHECK","19AB83"],["LOOKS_RIGHT","E6A800"],["REQUEST_HONORED","2F6FD0"],["RATIONALE","A8641E"],
+                 ["DELEGATED","5D4BC9"],["CARRIED_TRUST","E276A8"],["AI_ASSURANCE","A93BBD"],["RESIGNATION","E34948"]];
+const HANDOFFS = [["General Request","9FABEA"],["Specific Request","7486E0"],["Direction to Check","546AD9"],["Direction to Proceed","2E49D1"],["Intermediate Product","263CAB"],["Complete Product","152260"]];
+const ALIASES = {"direction check": "Direction to Check", "direction proceed": "Direction to Proceed"};
 const UNKNOWN_HEX = "#FFFFFF";
-const HIGH_HEADER = /macro|high|parent/;  // header of the macro (higher-level) task type column
-const MICRO_HEADER = /micro/;  // header of the micro task column
+
+// Codes match ignoring case, spaces, underscores and dashes
+const k = s => String(s ?? "").trim().toLowerCase().replace(/[‐-―]/g, "-").replace(/[\s_\-]+/g, " ").trim();
+const LEX = {action: new Map(), actionFamily: new Map(), task: new Map(), taskFamily: new Map(), reason: new Map(), handoff: new Map()};
+const HEX = new Map();
+const addCode = (lv, name, hex, family = "") => { LEX[lv].set(k(name), {name, hex: "#" + hex, family}); HEX.set(name, "#" + hex); };
+ACTION_FAMILIES.forEach(([f, h, items]) => { addCode("actionFamily", f, h); items.forEach(([n, x]) => addCode("action", n, x, f)); });
+TASK_FAMILIES.forEach(([f, h, items]) => { addCode("taskFamily", f, h); items.forEach(([n, x]) => addCode("task", n, x, f)); });
+REASONS.forEach(([n, x]) => addCode("reason", n, x));
+HANDOFFS.forEach(([n, x]) => addCode("handoff", n, x));
+const hexOf = name => HEX.get(name) || UNKNOWN_HEX;
+const ORDER = {
+  action: ACTION_FAMILIES.flatMap(([, , items]) => items.map(([n]) => n)), actionFamily: ACTION_FAMILIES.map(([f]) => f),
+  task: TASK_FAMILIES.flatMap(([, , items]) => items.map(([n]) => n)), taskFamily: TASK_FAMILIES.map(([f]) => f),
+  reason: REASONS.map(([n]) => n),
+};
+
+function lev(a, b){
+  const d = Array.from({length: a.length + 1}, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+// A code with a small typo (READ_AI_OUPUT) is read as the one closest code; anything else is unknown
+function lookup(lv, raw){
+  const key = k(raw);
+  if (!key) return null;
+  const hit = LEX[lv].get(key) || (ALIASES[key] && LEX[lv].get(k(ALIASES[key])));
+  if (hit) return {...hit, known: true};
+  let best = null, bd = 3, tie = false;
+  for (const [kk, v] of LEX[lv]){ const d = lev(key, kk); if (d < bd){ bd = d; best = v; tie = false; } else if (d === bd) tie = true; }
+  if (best && bd <= 2 && !tie && key.length >= 5) return {...best, known: true, fixed: raw};
+  return {name: raw, hex: UNKNOWN_HEX, family: "", known: false};
+}
+const UNKNOWN_FAMILY = {name: "(no family)", hex: UNKNOWN_HEX, family: "", known: false};
 
 /* ---------- Parsing ---------- */
 function parseCSV(text){
@@ -273,110 +385,137 @@ function parseCSV(text){
   return rows;
 }
 
+// Times are minutes.seconds (24.05 is 24:05, 25.1 is 25:10) or clock times (1:02:03, 24:05). Returns seconds.
+function parseTime(v){
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  if (/^\d+(:\d{1,2}){1,2}(\.\d+)?$/.test(s)) return s.split(":").map(Number).reduce((a, p) => a * 60 + p, 0);
+  if (/^\d+(\.\d+)?$/.test(s)){
+    const x = parseFloat(s), m = Math.floor(x), sec = Math.round((x - m) * 100);
+    return sec < 60 ? m * 60 + sec : null;
+  }
+  return null;
+}
+const clock = s => s == null ? "" : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+const secs = s => s == null ? "–" : s < 90 ? `${Math.round(s)} s` : `${Math.floor(s / 60)} min ${String(Math.round(s % 60)).padStart(2, "0")} s`;
+const rowList = a => a.length > 6 ? `${a.slice(0, 6).join(", ")} and ${a.length - 6} more` : a.join(", ");
+
 function buildWorkflow(rows, name){
   const warnings = [];
   rows = rows.map(r => r.map(v => v == null ? "" : String(v).trim()));
-  const header = rows[0] || [];
-  const catRaw = norm(header[0]);
-  // Optional columns: Micro Task (left of Task Type) and Macro Task (between Task Type and Handoff Type)
-  const find = (re, skip = []) => header.findIndex((h, i) => i && !skip.includes(i) && re.test(norm(h)));
-  const microCol = find(MICRO_HEADER), highCol = find(HIGH_HEADER, [microCol]), extra = [microCol, highCol];
-  const findCol = (re, fallback) => { const i = find(re, extra); return i >= 0 ? i : fallback; };
-  const taskCol = findCol(/task/, 1), handCol = findCol(/hand/, 2), agentCol = findCol(/agent/, 3);
-  if (find(/task/, extra) < 0) warnings.push("No “Task Type” header found, so columns B, C and D were read as Task Type, Handoff Type and Agent.");
-
-  const hasStepLabels = rows.slice(1).some(r => (r[0]||"") !== "");
-  let category;
-  if (catRaw.startsWith("tight")) category = "tight";
-  else if (catRaw.startsWith("loose")) category = "loose";
-  else { category = hasStepLabels ? "tight" : "loose"; warnings.push(`The first cell says “${header[0]||"(blank)"}”. Treated as ${category} because the file ${hasStepLabels ? "has" : "has no"} step labels.`); }
-
-  // Flatten rows into a sequence of entries. A row with a task type starts a task; a row with only a
-  // micro task adds it to the task above. An orphan is a micro task with no task type above it
-  // (e.g. SESSION_START): it shows as a micro task only.
-  const entries = [];
-  let stepIdx = -1; const stepLabels = [];
-  let lastAgent = null, inherited = 0;
-  const unknown = new Set(), orphans = []; let seenTask = false;
-  rows.slice(1).forEach(r => {
-    const newStep = category === "tight" && r[0];
-    if (newStep){ stepLabels.push(r[0]); stepIdx = stepLabels.length - 1; }
-    const task = r[taskCol] || "", hand = r[handCol] || "", agentRaw = norm(r[agentCol]);
-    const micro = microCol >= 0 ? (r[microCol] || "") : "", last = entries[entries.length-1];
-    if (micro && !task && last && last.kind !== "handoff" && !newStep) last.micros.push(micro);
-    else if (task || micro){
-      let kind = null;
-      if (/\bai\b|^ai|artificial/.test(agentRaw)) kind = "ai";
-      else if (/human|person|user/.test(agentRaw)) kind = "human";
-      else if (lastAgent){ kind = lastAgent; inherited++; }
-      else { kind = "human"; inherited++; }
-      lastAgent = kind;
-      if (!task && seenTask) orphans.push(micro);  // micro tasks before the first task type (session events) need no note
-      seenTask = seenTask || !!task;
-      entries.push({kind, name: task || micro, step: stepIdx, high: highCol >= 0 ? (r[highCol] || "") : "", micros: micro ? [micro] : [], orphan: !task});
-    }
-    if (hand) entries.push({kind: "handoff", name: hand, step: stepIdx, high: "", micros: []});
-  });
-  if (inherited) warnings.push(`${inherited} task ${inherited===1?"row has":"rows have"} no agent, so ${inherited===1?"it was":"they were"} kept with the agent of the task above.`);
-  if (category === "tight" && !stepLabels.length) warnings.push("Marked Tight but no step labels were found in the first column.");
-  if (category === "tight" && entries.some(e => e.step < 0)) warnings.push("Some rows come before the first step label and sit outside any step.");
-  if (orphans.length){ const one = orphans.length === 1; warnings.push(`${[...new Set(orphans)].join(", ")} ${one?"has":"have"} no task type above ${one?"it":"them"}, in ${one?"its":"their"} column, so ${one?"it shows":"they show"} as ${one?"a micro task":"micro tasks"} only.`); }
-
-  // Group consecutive entries of the same kind within the same step
-  const counters = {human:0, ai:0, handoff:0};
-  const LABEL = {human:"Human", ai:"AI", handoff:"Handoff"};
-  const columns = [];
-  const cell = name => {
-    const key = norm(name), hex = COLORS.get(key);
-    if (!hex) unknown.add(name);
-    return {name: CANON.get(key) || name, hex: hex || UNKNOWN_HEX, known: !!hex, tasks: [], group: "", rows: 1, parent: -1};
-  };
-  let highName = "", highKind = null, untyped = 0;
-  entries.forEach(e => {
-    const last = columns[columns.length-1];
-    const newCol = !last || last.kind !== e.kind || last.step !== e.step;
-    if (newCol){
-      counters[e.kind]++;
-      columns.push({kind: e.kind, step: e.step, label: `${LABEL[e.kind]} #${counters[e.kind]}`, cells: [], highCells: [], microCells: []});
-    }
-    const col = columns[columns.length-1];
-    if (e.orphan){ e.micros.forEach(m => col.microCells.push(cell(m))); return; }  // micro tasks only
-    const x = cell(e.name);
-    col.cells.push(x);
-    if (e.kind === "handoff"){ col.highCells.push(x); col.microCells.push(x); return; }
-    // Micro tasks: one square each; a task with none keeps its task type square
-    x.tasks = [...e.micros]; x.rows = Math.max(1, e.micros.length);
-    (e.micros.length ? e.micros : [null]).forEach(m => { const mx = m ? cell(m) : {...x, tasks: [], rows: 1}; mx.group = x.name; mx.parent = col.cells.length - 1; col.microCells.push(mx); });
-    // A macro task covers the task rows below it until the next one is named.
-    // Blank rows continue it while the agent stays the same (a new column starts a new square
-    // with the same type); a blank row after another agent's task has none of its own.
-    if (e.high || highKind !== e.kind) highName = e.high;
-    highKind = e.kind;
-    if (highCol >= 0 && !highName) untyped++;
-    if (e.high || newCol || !highName) col.highCells.push({...cell(highName || e.name), rows: 0});
-    const hx = col.highCells[col.highCells.length-1];
-    hx.tasks.push(x.name); hx.rows += x.rows; x.group = hx.name; x.parent = col.highCells.length - 1;
-  });
-  if (unknown.size) warnings.push(`No color is set for: ${[...unknown].join(", ")}. These show as striped squares and export as ${UNKNOWN_HEX}.`);
-  if (untyped) warnings.push(`${untyped} task ${untyped===1?"row has":"rows have"} no macro task (blank, with no task by the same agent above), so ${untyped===1?"it uses its":"they use their"} own task type in the macro view.`);
-
-  const steps = [];
-  if (category === "tight"){
-    stepLabels.forEach((label, i) => {
-      const idx = columns.map((c,j) => c.step === i ? j : -1).filter(j => j >= 0);
-      if (idx.length) steps.push({label, start: idx[0], end: idx[idx.length-1]});
-      else warnings.push(`“${label}” has no rows under it.`);
-    });
+  // The header row is the first one naming Actions, Task Types or Handoff Type; the category sits above it (or in its first cell)
+  const hi = Math.max(0, rows.slice(0, 8).findIndex(r => r.some(c => /\b(actions?|task types?|handoff( type)?)\b/.test(k(c)))));
+  const header = rows[hi] || [];
+  const catCell = rows.slice(0, hi + 1).flat().find(c => /^(tight|loose)\b/i.test(c)) || "";
+  const skip0 = /^(tight|loose)\b/i.test(header[0] || "");
+  const col = (re, not) => header.findIndex((h, i) => !(skip0 && !i) && re.test(k(h)) && !(not && not.test(k(h))));
+  const C = {time: col(/^(time|timestamp|clock)/), phase: col(/phase|^steps?\b/), action: col(/action/, /famil/), actionFamily: col(/action.*famil/),
+             task: col(/task/, /famil/), taskFamily: col(/task.*famil/), hand: col(/hand ?off/), reason: col(/reason|move forward/), agent: col(/agent|actor/)};
+  if (C.action < 0 && C.task < 0) warnings.push("No “Actions” or “Task Types” header was found, so no tasks could be read.");
+  const val = (r, c) => c >= 0 ? (r[c] || "") : "";
+  const body = rows.slice(hi + 1);
+  let category = /^tight/i.test(catCell) ? "tight" : /^loose/i.test(catCell) ? "loose" : null;
+  if (!category){
+    const phases = body.some(r => val(r, C.phase));
+    category = phases ? "tight" : "loose";
+    warnings.push(`No TIGHT or LOOSE label was found above the headers. Treated as ${category} because the file ${phases ? "has" : "has no"} phase labels.`);
   }
-  return {id: "w" + Math.random().toString(36).slice(2,9), name, category, columns, steps, warnings, counters,
-          hasHigh: highCol >= 0, hasMicro: microCol >= 0, rowsMax: Math.max(0, ...columns.map(c => c.cells.length))};
+
+  // A row with a task type starts a task; a row with only an action adds it to the task above (same agent, same phase).
+  // An action with no task type above it (e.g. SESSION_START) is an action only, with no task.
+  const fixed = new Map(), unknown = new Set(), badTimes = [], lostReasons = [];
+  const look = (lv, raw) => { const x = lookup(lv, raw); if (x && x.fixed) fixed.set(raw, x.name); if (x && !x.known) unknown.add(raw); return x; };
+  const family = (lv, explicit, derived) => explicit ? look(lv, explicit) : LEX[lv].has(k(derived)) ? {...LEX[lv].get(k(derived)), known: true} : UNKNOWN_FAMILY;
+  const entries = [], stepLabels = [];
+  let step = -1, lastAgent = null, inherited = 0;
+  body.forEach((r, i) => {
+    const row = hi + i + 2, phase = val(r, C.phase), actRaw = val(r, C.action), taskRaw = val(r, C.task), handRaw = val(r, C.hand),
+          reasonRaw = val(r, C.reason), timeRaw = val(r, C.time);
+    if (phase){ stepLabels.push(phase); step = stepLabels.length - 1; }
+    let time = null;
+    if (timeRaw){ time = parseTime(timeRaw); if (time == null) badTimes.push(row); }
+    const reason = reasonRaw ? look("reason", reasonRaw) : null;
+    if (actRaw || taskRaw){
+      const act = actRaw ? look("action", actRaw) : null;
+      const actFam = act ? family("actionFamily", val(r, C.actionFamily), act.family) : null;
+      const a = {action: act, actFam, reason, time, row};
+      const agentRaw = k(val(r, C.agent));
+      let kind = /^ai\b|artificial|system|model|bot/.test(agentRaw) ? "ai" : /human|person|user|participant/.test(agentRaw) ? "human" : null;
+      const last = entries[entries.length - 1];
+      if (!taskRaw && last && last.kind !== "handoff" && !phase && (!kind || kind === last.kind)) last.actions.push(a);
+      else {
+        if (!kind){
+          if (actFam && actFam.name === "AI_OR_SYSTEM") kind = "ai";  // SESSION_START, AI_WORKING… need no agent
+          else { kind = lastAgent || "human"; inherited++; }
+        }
+        const task = taskRaw ? look("task", taskRaw) : null;
+        entries.push({kind, task, taskFam: task ? family("taskFamily", val(r, C.taskFamily), task.family) : null, orphan: !task, step, actions: [a], row});
+      }
+      lastAgent = entries[entries.length - 1].kind;
+    } else if (reason){
+      // A reason on a row of its own belongs to the task above it
+      const last = [...entries].reverse().find(e => e.kind !== "handoff");
+      const a = last && [...last.actions].reverse().find(x => !x.reason);
+      if (a) a.reason = reason; else lostReasons.push(row);
+    }
+    if (handRaw) entries.push({kind: "handoff", hand: look("handoff", handRaw), step, time, row, actions: []});
+  });
+
+  // Each row lasts until the next row with a usable time. A time earlier than the one before it is left out.
+  const events = entries.flatMap((e, ei) => e.kind === "handoff" ? [{e, ei, a: e, row: e.row}] : e.actions.map(a => ({e, ei, a, row: a.row})));
+  let prev = null; const back = [];
+  events.forEach(ev => {
+    ev.a.t = null; ev.a.dur = null;
+    if (ev.a.time == null) return;
+    if (prev && ev.a.time < prev.a.t){ back.push(ev.row); return; }
+    ev.a.t = ev.a.time;
+    if (prev) prev.a.dur = ev.a.t - prev.a.t;
+    prev = ev;
+  });
+  entries.forEach(e => {
+    const timed = e.kind === "handoff" ? [e] : e.actions;
+    const ts = timed.filter(a => a.t != null);
+    e.start = ts.length ? ts[0].t : null;
+    e.dur = ts.some(a => a.dur != null) ? ts.reduce((s, a) => s + (a.dur || 0), 0) : null;
+    e.end = ts.length ? ts[ts.length - 1].t + (ts[ts.length - 1].dur || 0) : null;
+    e.lastT = ts.length ? ts[ts.length - 1].t : null;
+    e.reason = e.kind === "handoff" ? null : (e.actions.find(a => a.reason) || {}).reason || null;
+  });
+
+  if (fixed.size) warnings.push(`Read as the closest code: ${[...fixed].map(([a, b]) => `${a} → ${b}`).join(", ")}.`);
+  if (unknown.size) warnings.push(`Not in the codebook: ${[...unknown].join(", ")}. These show as striped squares and export as ${UNKNOWN_HEX}.`);
+  if (inherited) warnings.push(`${inherited} task ${inherited === 1 ? "row has" : "rows have"} no agent, so ${inherited === 1 ? "it was" : "they were"} kept with the agent of the task above.`);
+  if (back.length) warnings.push(`The time goes backwards on ${back.length === 1 ? "row" : "rows"} ${rowList(back)}, so ${back.length === 1 ? "that time is" : "those times are"} left out of time measures.`);
+  if (badTimes.length) warnings.push(`Could not read the time on ${badTimes.length === 1 ? "row" : "rows"} ${rowList(badTimes)}.`);
+  if (lostReasons.length) warnings.push(`A reasoning on ${lostReasons.length === 1 ? "row" : "rows"} ${rowList(lostReasons)} has no task above it and was left out.`);
+  if (C.time < 0) warnings.push("No Time column was found, so time measures are blank.");
+  if (category === "tight" && !stepLabels.length) warnings.push("Marked TIGHT but no phase labels were found.");
+
+  // Group consecutive entries of the same kind within the same phase into columns
+  const counters = {human: 0, ai: 0, handoff: 0}, LABEL = {human: "Human", ai: "AI", handoff: "Handoff"}, columns = [];
+  entries.forEach(e => {
+    const last = columns[columns.length - 1];
+    if (!last || last.kind !== e.kind || last.step !== e.step){
+      counters[e.kind]++;
+      columns.push({kind: e.kind, step: e.step, label: `${LABEL[e.kind]} #${counters[e.kind]}`, entries: []});
+    }
+    columns[columns.length - 1].entries.push(e);
+    e.col = columns.length - 1;
+  });
+  const steps = [];
+  stepLabels.forEach((label, i) => {
+    const idx = columns.map((c, j) => c.step === i ? j : -1).filter(j => j >= 0);
+    if (idx.length) steps.push({label, start: idx[0], end: idx[idx.length - 1]});
+  });
+  return {id: "w" + Math.random().toString(36).slice(2, 9), name, category, entries, events, columns, steps, stepLabels, warnings, counters,
+          hasAction: C.action >= 0, hasTask: C.task >= 0, hasReason: entries.some(e => e.reason)};
 }
 
 /* ---------- State ---------- */
-const state = {files: [], active: null, levels: {}};
+const state = {files: [], active: null, levels: {}, st: {tl: "taskFamily", comp: "taskFamily", measure: "count", seq: "taskFamily"}};
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const baseName = n => n.replace(/\.(csv|xlsx|xls)$/i, "");
+const baseName = n => n.replace(/\.(csv|xlsx|xls|numbers)$/i, "");
 const slug = s => s.replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"-") || "workflow";
 
 function uniqueName(n){
@@ -388,6 +527,7 @@ function addWorkflow(rows, fileName){
   const wf = buildWorkflow(rows, uniqueName(baseName(fileName)));
   state.files.push(wf);
   state.active = wf.id;
+  return wf;
 }
 async function handleFiles(list){
   if (!list.length) return;
@@ -396,8 +536,8 @@ async function handleFiles(list){
   for (const file of list){
     try{
       let rows;
-      if (/\.xlsx?$/i.test(file.name)){
-        if (!window.XLSX) throw new Error("the Excel reader did not load");
+      if (/\.(xlsx?|numbers)$/i.test(file.name)){
+        if (!window.XLSX) throw new Error("the spreadsheet reader did not load");
         const wb = XLSX.read(await file.arrayBuffer(), {type: "array"});
         rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header: 1, defval: "", raw: false});
       } else rows = parseCSV(await file.text());
@@ -410,9 +550,14 @@ async function handleFiles(list){
 }
 
 /* ---------- Tabs model ---------- */
-function tabs(){
+function mapTabs(){
   const t = state.files.map(f => ({id: f.id, title: f.name, kind: f.category, files: [f]}));
   if (state.files.length > 1) t.push({id: "all", title: "All workflows", kind: "all", files: orderedFiles()});
+  return t;
+}
+function tabs(){
+  const t = mapTabs();
+  if (state.files.length) t.push({id: "stats", title: "Statistics", kind: "stats", files: orderedFiles()});
   return t;
 }
 function orderedFiles(){ return [...state.files.filter(f => f.category === "tight"), ...state.files.filter(f => f.category === "loose")]; }
@@ -420,36 +565,65 @@ function currentTab(){ const t = tabs(); return t.find(x => x.id === state.activ
 function groupsOf(tab){
   return ["tight","loose"].map(cat => ({cat, files: tab.files.filter(f => f.category === cat)})).filter(g => g.files.length);
 }
-/* Each map shows micro tasks, task types, macro tasks, or all three side by side ("all"), switched per map */
-const LEVEL_NAME = {micro: "Micro", task: "Task", high: "Macro"};
-const LEVEL_LABEL = {micro: "Micro tasks", task: "Task types", high: "Macro tasks", all: "All levels"};
-const LEVEL_SUFFIX = {task: "", micro: "-micro", high: "-macro", all: "-all-levels"};
-const fileLevels = f => ["micro", "task", "high"].filter(lv => lv === "task" || (lv === "micro" ? f.hasMicro : f.hasHigh));
+
+/* ---------- Levels ---------- */
+// Each map shows actions, action families, task types, task families, or all of them side by side ("all")
+const LEVEL_LABEL = {task: "Task types", taskFamily: "Task families", action: "Actions", actionFamily: "Action families", all: "All levels"};
+const SUB_LABEL = {action: "Action", actionFamily: "Act. fam.", task: "Task", taskFamily: "Task fam.", reason: "Reason"};
+const LEVEL_SUFFIX = {task: "", taskFamily: "-task-families", action: "-actions", actionFamily: "-action-families", all: "-all-levels"};
+const fileLevels = f => [...(f.hasAction ? ["action", "actionFamily"] : []), ...(f.hasTask ? ["task", "taskFamily"] : [])];
 const viewsOf = f => { const l = fileLevels(f); return l.length > 1 ? [...l, "all"] : l; };
 const levelKey = (tab, f) => `${tab.id}:${f.id}`;
-const levelOf = (tab, f) => { const lv = state.levels[levelKey(tab, f)]; return viewsOf(f).includes(lv) ? lv : "task"; };
+const levelOf = (tab, f) => { const lv = state.levels[levelKey(tab, f)], v = viewsOf(f); return v.includes(lv) ? lv : v.includes("task") ? "task" : v[0] || "task"; };
 const rowsMaxOf = columns => Math.max(0, ...columns.map(c => c.cells.length));
+const famName = x => x ? x.name : "";
+
+// Squares. Each carries tooltip lines and, when coded, the reasoning to move forward.
+function timing(e){
+  if (e.start == null) return "";
+  return `${clock(e.start)}${e.dur != null ? ` · ${secs(e.dur)}` : ""}`;
+}
+function taskCell(e, level){
+  const x = level === "taskFamily" ? e.taskFam : e.task;
+  const acts = e.actions.filter(a => a.action).map(a => a.action.name);
+  return {name: x.name, hex: x.hex, known: x.known, rows: 1, reason: e.reason, body: [
+    level === "taskFamily" ? `Task type: ${e.task.name}` : `Task family: ${famName(e.taskFam)}`,
+    acts.length ? `Actions: ${acts.join(", ")}` : "", timing(e), e.reason ? `Reasoning: ${e.reason.name}` : "", `Row ${e.row}`]};
+}
+function actionCell(a, e, level){
+  const x = level === "actionFamily" ? (a.actFam || UNKNOWN_FAMILY) : a.action;
+  return {name: x.name, hex: x.hex, known: x.known, rows: 1, reason: a.reason, body: [
+    level === "actionFamily" ? `Action: ${a.action.name}` : `Action family: ${famName(a.actFam)}`,
+    e.orphan ? "No task type" : `Task: ${e.task.name} (${famName(e.taskFam)})`,
+    a.t != null ? `${clock(a.t)}${a.dur != null ? ` · ${secs(a.dur)}` : ""}` : "", a.reason ? `Reasoning: ${a.reason.name}` : "", `Row ${a.row}`]};
+}
+const handCell = e => ({name: e.hand.name, hex: e.hand.hex, known: e.hand.known, rows: 1, body: [e.t != null ? clock(e.t) : "", `Row ${e.row}`]});
+const reasonCell = a => ({name: a.reason.name, hex: a.reason.hex, known: a.reason.known, rows: 1, body: ["Reasoning to move forward", `On ${a.action ? a.action.name : "this row"}`, `Row ${a.row}`]});
+function cellsAt(c, level){
+  if (c.kind === "handoff") return c.entries.map(handCell);
+  if (level === "task" || level === "taskFamily") return c.entries.filter(e => !e.orphan).map(e => taskCell(e, level));
+  return c.entries.flatMap(e => e.actions.filter(a => a.action).map(a => actionCell(a, e, level)));
+}
 function view(f, level){
   if (level === "all") return allLevels(f);
-  if (level === "task" || !fileLevels(f).includes(level)) return {...f, level: "task"};
-  const columns = f.columns.map(c => ({...c, cells: level === "high" ? c.highCells : c.microCells}));
+  const columns = f.columns.map(c => ({...c, cells: cellsAt(c, level)}));
   return {...f, level, columns, rowsMax: rowsMaxOf(columns)};
 }
-// Each human and AI column split into one sub-column per level (micro, task, macro), one row per micro task,
-// with task and macro squares as tall squares spanning the rows they cover
+// Each human and AI column split into one sub-column per level, one row per action, with task squares
+// stretching down the rows of their actions. "" is an empty square; null is covered by a tall square above.
 function allLevels(f){
-  const levels = fileLevels(f), columns = [], first = [], last = [];
+  const subs = [...fileLevels(f), ...(f.hasReason ? ["reason"] : [])], columns = [], first = [], last = [];
   f.columns.forEach(c => {
     first.push(columns.length);
-    if (c.kind === "handoff") columns.push({...c, sub: ""});
+    if (c.kind === "handoff") columns.push({...c, cells: cellsAt(c), sub: ""});
     else {
-      // Each row is a micro task; beside it, its task type and macro task ("" when it has none),
-      // drawn once at the first row they cover (null on the rows below)
-      const tasks = c.microCells.map(m => m.parent ?? -1), highs = tasks.map(t => t >= 0 ? c.cells[t].parent ?? -1 : -1);
-      levels.forEach(lv => {
-        const [idx, src] = lv === "task" ? [tasks, c.cells] : [highs, c.highCells];
-        const cells = lv === "micro" ? [...c.microCells] : idx.map((i, r) => i < 0 ? "" : r && idx[r - 1] === i ? null : src[i]);
-        columns.push({...c, cells, sub: lv});
+      const rows = c.entries.flatMap(e => e.actions.map((a, i) => ({e, a, i})));
+      subs.forEach(sub => {
+        const cells = rows.map(({e, a, i}) =>
+          sub === "reason" ? (a.reason ? reasonCell(a) : "") :
+          sub === "action" || sub === "actionFamily" ? (a.action ? actionCell(a, e, sub) : "") :
+          e.orphan ? "" : i ? null : {...taskCell(e, sub), rows: e.actions.length});
+        columns.push({...c, cells, sub});
       });
     }
     last.push(columns.length - 1);
@@ -457,15 +631,17 @@ function allLevels(f){
   return {...f, level: "all", columns, rowsMax: rowsMaxOf(columns),
           steps: f.steps.map(s => ({...s, start: first[s.start], end: last[s.end]}))};
 }
-// Versions to download: task types first, then micro tasks, macro tasks and all levels, for whichever the files have
+// Versions to download: task types first, then the other levels the files have
 const levelsOf = tab => {
   const have = new Set(tab.files.flatMap(fileLevels));
-  return ["task", ...["micro", "high"].filter(l => have.has(l)), ...(have.size > 1 ? ["all"] : [])];
+  const order = ["task", "taskFamily", "action", "actionFamily"].filter(l => have.has(l));
+  return have.size > 1 ? [...order, "all"] : order.length ? order : ["task"];
 };
 const tabAt = (tab, level) => ({...tab, level, files: tab.files.map(f => view(f, level))});
 function legendOf(files){
   const seen = new Map();
-  files.forEach(f => f.columns.forEach(c => c.cells.forEach(x => { if (x && !seen.has(x.name)) seen.set(x.name, x); })));
+  const add = x => { if (x && !seen.has(x.name)) seen.set(x.name, x); };
+  files.forEach(f => f.columns.forEach(c => c.cells.forEach(x => { if (x){ add(x); if (x.reason) add({...x.reason, name: x.reason.name}); } })));
   return [...seen.values()];
 }
 
@@ -480,13 +656,13 @@ function render(){
 function renderFileList(){
   const ul = $("file-list");
   $("clear-all").hidden = !state.files.length;
-  if (!state.files.length){ ul.innerHTML = `<li class="empty-note">No workflows loaded yet. <button class="btn small" type="button" id="load-example">Load the example</button></li>`; $("load-example").onclick = loadExample; return; }
+  if (!state.files.length){ ul.innerHTML = `<li class="empty-note">No workflows loaded yet. <button class="btn small" type="button" id="load-example">Load the examples</button></li>`; $("load-example").onclick = loadExample; return; }
   ul.innerHTML = state.files.map(f => `
     <li class="file ${f.id === state.active ? "active" : ""}">
       <span class="file-name" data-open="${f.id}" tabindex="0">${esc(f.name)}</span>
       <button class="x" type="button" data-remove="${f.id}" aria-label="Remove ${esc(f.name)}">×</button>
       <span class="file-meta"><span class="chip ${f.category}">${f.category}</span>
-        ${f.columns.length} columns · ${f.counters.human} human · ${f.counters.ai} AI · ${f.counters.handoff} handoff${f.category === "tight" ? ` · ${f.steps.length} steps` : ""}</span>
+        ${f.columns.length} columns · ${f.counters.human} human · ${f.counters.ai} AI · ${f.counters.handoff} handoff${f.steps.length ? ` · ${f.steps.length} phases` : ""}</span>
       ${f.warnings.length ? `<ul class="warns">${f.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}
     </li>`).join("");
 }
@@ -496,21 +672,21 @@ function renderTabs(t){
   if (!t.length){ el.innerHTML = `<button class="tab" role="tab" aria-selected="true">Results</button>`; return; }
   el.innerHTML = t.map(x => `
     <button class="tab" role="tab" type="button" data-tab="${x.id}" aria-selected="${x.id === state.active}">
-      <span class="dot ${x.kind}"></span>${esc(x.title)}${x.id === "all" ? ` <span class="eyebrow">${x.files.length}</span>` : ` <span class="x" data-remove="${x.id}" role="button" aria-label="Close ${esc(x.title)}">×</span>`}
+      <span class="dot ${x.kind}"></span>${esc(x.title)}${x.id === "all" ? ` <span class="eyebrow">${x.files.length}</span>` : x.id === "stats" ? "" : ` <span class="x" data-remove="${x.id}" role="button" aria-label="Close ${esc(x.title)}">×</span>`}
     </button>`).join("");
 }
 
+const seg = (opts, cur, attrs, label) => `<div class="level" role="group" aria-label="${esc(label)}">${opts.map(([v, l]) =>
+  `<button type="button" ${attrs(v)} aria-pressed="${v === cur}">${l}</button>`).join("")}</div>`;
 function levelHTML(tab, f){
   const views = viewsOf(f);
   if (views.length < 2) return "";
-  const lv = levelOf(tab, f), key = esc(levelKey(tab, f));
-  return `<div class="level" role="group" aria-label="What the squares show for ${esc(f.name)}">${views.map(v =>
-    `<button type="button" data-level="${v}" data-key="${key}" aria-pressed="${lv === v}">${LEVEL_LABEL[v]}</button>`).join("")}</div>`;
+  return seg(views.map(v => [v, LEVEL_LABEL[v]]), levelOf(tab, f), v => `data-level="${v}" data-key="${esc(levelKey(tab, f))}"`, `What the squares show for ${f.name}`);
 }
 
 function tableHTML(f){
   let h = `<table class="viz"><tbody>`;
-  if (f.category === "tight" && f.steps.length){
+  if (f.steps.length){
     h += `<tr>`; let c = 0;
     for (const s of f.steps){
       if (s.start > c) h += `<td class="stepcell" colspan="${s.start - c}"></td>`;
@@ -526,17 +702,17 @@ function tableHTML(f){
     const groups = [];
     f.columns.forEach(c => { const g = groups[groups.length - 1]; g && g.label === c.label ? g.n++ : groups.push({label: c.label, kind: c.kind, n: 1}); });
     h += `<tr>${groups.map(g => `<th class="grp" colspan="${g.n}" scope="colgroup">${g.label}</th>`).join("")}</tr>`;
-    h += `<tr>${f.columns.map(c => `<th class="${c.kind} lvl" scope="col">${c.sub ? LEVEL_NAME[c.sub] : ""}</th>`).join("")}</tr>`;
+    h += `<tr>${f.columns.map(c => `<th class="${c.kind} lvl" scope="col">${c.sub ? SUB_LABEL[c.sub] : ""}</th>`).join("")}</tr>`;
   } else h += `<tr>${f.columns.map(c => `<th class="${c.kind}" scope="col">${c.label}</th>`).join("")}</tr>`;
+  const KIND = {human: "Human", ai: "AI", handoff: "Handoff"};
   for (let r = 0; r < f.rowsMax; r++){
     h += `<tr>${f.columns.map((c, ci) => { const x = c.cells[r]; if (x === null) return ""; if (!x) return `<td></td>`;
-      const span = f.level === "all" && c.sub !== "micro" ? x.rows || 1 : 1;
+      const span = f.level === "all" && c.sub && c.sub !== "action" && c.sub !== "actionFamily" ? x.rows || 1 : 1;
       const st = f.steps.find(s => ci >= s.start && ci <= s.end);
-      const lv = c.kind === "handoff" ? "" : f.level === "all" ? c.sub : f.level;
-      const extra = [lv === "task" && x.tasks.length ? `Micro tasks: ${x.tasks.join(", ")}` : lv === "high" && x.tasks.length ? `Task types: ${x.tasks.join(", ")}` : "",
-                     lv === "micro" && x.group ? `Task type: ${x.group}` : lv === "task" && f.hasHigh && x.group ? `Macro task: ${x.group}` : ""].filter(Boolean).join("\n");
       const n = c.cells.filter(Boolean).length, pos = c.cells.slice(0, r).filter(Boolean).length + 1;
-      return `<td class="hit"${span > 1 ? ` rowspan="${span}"` : ""} tabindex="0" aria-label="${esc(x.name)}, ${c.label}" data-name="${esc(x.name)}" data-extra="${esc(extra)}" data-hex="${x.hex}" data-known="${x.known}" data-kind="${c.kind}" data-col="${c.label}${c.sub ? ` · ${LEVEL_NAME[c.sub]}` : ""}" data-pos="${pos} of ${n}" data-step="${st ? esc(st.label) : ""}"><span class="sq ${x.known ? "" : "unknown"}" style="background:${x.hex}${span > 1 ? `;height:${span * 27 - 9}px` : ""}"></span></td>`; }).join("")}</tr>`;
+      const lines = [`${KIND[c.kind]} · ${c.label}${c.sub ? ` · ${SUB_LABEL[c.sub]}` : ""} · item ${pos} of ${n}`, st ? st.label : "", ...x.body, x.hex + (x.known ? "" : " · not in the codebook")].filter(Boolean);
+      const badge = x.reason && f.level !== "all" ? `<i class="rb" style="background:${x.reason.hex}"></i>` : "";
+      return `<td class="hit"${span > 1 ? ` rowspan="${span}"` : ""} tabindex="0" aria-label="${esc(x.name)}, ${c.label}" data-name="${esc(x.name)}" data-hex="${x.hex}" data-known="${x.known}" data-body="${esc(lines.join("\n"))}"><span class="sq ${x.known ? "" : "unknown"}" style="background:${x.hex}${span > 1 ? `;height:${span * 27 - 9}px` : ""}">${badge}</span></td>`; }).join("")}</tr>`;
   }
   return h + `</tbody></table>`;
 }
@@ -549,8 +725,9 @@ function renderResults(){
   const el = $("results");
   const tab = currentTab();
   if (!tab){
-    el.innerHTML = `<p class="hint">Upload a transcript CSV on the left to see its handoff map here.</p>`; return;
+    el.innerHTML = `<p class="hint">Upload a coded transcript on the left to see its handoff map here.</p>`; return;
   }
+  if (tab.id === "stats"){ el.innerHTML = statsHTML(tab.files); return; }
   const files = tab.files;
   const cols = files.reduce((a,f) => a + f.columns.length, 0);
   let body;
@@ -561,6 +738,9 @@ function renderResults(){
       </div>`).join("")}</div>`;
   } else body = `${viewsOf(files[0]).length > 1 ? `<div class="block-head">${levelHTML(tab, files[0])}</div>` : ""}<div class="sheet-row">${tableHTML(view(files[0], levelOf(tab, files[0])))}</div>`;
   const f0 = files[0];
+  // In All workflows, one switch sets every map at once
+  const allViews = tab.id === "all" ? [...new Set(files.flatMap(viewsOf))] : [];
+  const allCur = allViews.find(v => files.every(f => levelOf(tab, f) === v)) || "";
   el.innerHTML = `
     <div class="res-head">
       <div>
@@ -572,34 +752,548 @@ function renderResults(){
           <span><b>${files.reduce((a,f)=>a+f.counters.human,0)}</b> human</span>
           <span><b>${files.reduce((a,f)=>a+f.counters.ai,0)}</b> AI</span>
           <span><b>${files.reduce((a,f)=>a+f.counters.handoff,0)}</b> handoff</span>
-          ${tab.id !== "all" && f0.category === "tight" ? `<span><b>${f0.steps.length}</b> steps</span>` : ""}
+          ${tab.id !== "all" && f0.steps.length ? `<span><b>${f0.steps.length}</b> phases</span>` : ""}
         </div>
       </div>
       <div class="row">
+        ${allViews.length > 1 ? seg(allViews.map(v => [v, LEVEL_LABEL[v]]), allCur, v => `data-level-all="${v}"`, "What the squares show on every map") : ""}
         <button class="btn small" type="button" data-dl="csv">CSV${levelsOf(tab).length > 1 ? ` ×${levelsOf(tab).length}` : ""}</button>
         <button class="btn small" type="button" data-dl="png">PNG${levelsOf(tab).length > 1 ? ` ×${levelsOf(tab).length}` : ""}</button>
       </div>
     </div>
     <div class="sheet-wrap">${body}</div>
     <div><h3 class="eyebrow" style="margin:0 0 8px">Legend</h3>${legendHTML(legendOf(files.map(f => view(f, levelOf(tab, f)))))}</div>
-    <p class="hint">Hover over a square, or tap it on a touch screen, to see its task or handoff type.${files.some(f => viewsOf(f).length > 1) ? " Use the switch above each map to show micro tasks, task types, macro tasks, or all levels side by side. Downloads include every version." : ""}</p>`;
+    <p class="hint">Hover over a square, or tap it on a touch screen, to see what it is, its time and the row it came from. A dot on a square's corner is the reasoning to move forward coded on it. Use the switch to move between actions, action families, task types, task families and all levels side by side. Downloads include every level.</p>`;
 }
 
 function renderDownloadLabels(){
-  const tab = currentTab(), t = tabs();
+  const tab = currentTab(), t = mapTabs(), stats = tab && tab.id === "stats";
   $("dl-current-title").textContent = tab ? `Current tab · ${tab.title}` : "Current tab";
+  $("dl-current-desc").textContent = stats
+    ? "Saves two CSV files: every statistics table on this tab, and every coded row of every transcript (with times, families and decisions) for use in R, SPSS or Excel."
+    : "The CSV holds one column per group, with each square stored as its hex color code. The PNG is the picture shown on the right. Every level is saved: task types, task families, actions, action families and all levels side by side.";
   ["dl-csv","dl-png","dl-all","dl-zip"].forEach(id => $(id).disabled = !tab);
-  const n = t.reduce((a, x) => a + levelsOf(x).length * 2, 0), both = t.some(x => levelsOf(x).length > 1);
-  $("dl-all-desc").textContent = t.length ? `Saves ${n} files: a separate CSV and PNG for each of the ${t.length} ${t.length === 1 ? "tab" : "tabs"}${both ? ", for each task level" : ""}.` : "Saves a separate CSV and PNG for each tab.";
+  $("dl-png").disabled = !tab || stats;
+  const n = t.reduce((a, x) => a + levelsOf(x).length * 2, 0) + (state.files.length ? 2 : 0);
+  $("dl-all-desc").textContent = t.length ? `Saves ${n} files: a CSV and PNG of each of the ${t.length} ${t.length === 1 ? "map" : "maps"} at every level, plus the two statistics CSVs.` : "Saves a separate CSV and PNG for each tab.";
 }
 
 function renderKey(){
-  $("key-list").innerHTML = TYPE_GROUPS.map(([g, items]) => `<div class="key-group">${g}</div>` +
-    items.map(([n,h]) => `<span class="key-item"><span class="sw" style="background:#${h}"></span>${n}<code>#${h}</code></span>`).join("")).join("");
+  const fam = ([f, h, items], label) => `<span class="key-item fam"><span class="sw" style="background:#${h}"></span>${f}<code>#${h}</code></span>` +
+    items.filter(([n]) => n !== f).map(([n, x]) => `<span class="key-item" style="padding-left:14px"><span class="sw" style="background:#${x}"></span>${n}<code>#${x}</code></span>`).join("");
+  $("key-list").innerHTML =
+    `<div class="key-group">Action families and their actions</div>` + ACTION_FAMILIES.map(x => fam(x)).join("") +
+    `<div class="key-group">Task families and their task types</div>` + TASK_FAMILIES.map(x => fam(x)).join("") +
+    `<div class="key-group">Reasoning to move forward</div>` + REASONS.map(([n, h]) => `<span class="key-item"><span class="sw" style="background:#${h};border-radius:50%"></span>${n}<code>#${h}</code></span>`).join("") +
+    `<div class="key-group">Handoffs</div>` + HANDOFFS.map(([n, h]) => `<span class="key-item"><span class="sw" style="background:#${h}"></span>${n}<code>#${h}</code></span>`).join("");
 }
 
-/* ---------- CSV export ---------- */
+/* ---------- Statistics: tests ---------- */
+// Seeded random numbers, so permutation p-values don't change between renders
+const rng = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+function shuffleInPlace(a, r){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(r() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+const sum = a => a.reduce((s, v) => s + v, 0);
+const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+function gammaln(x){
+  const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+  let y = x, tmp = x + 5.5; tmp -= (x + .5) * Math.log(tmp);
+  let ser = 1.000000000190015; for (const v of c) ser += v / ++y;
+  return -tmp + Math.log(2.5066282746310005 * ser / x);
+}
+// Upper regularized gamma Q(a, x): the chi-square tail
+function gammaQ(a, x){
+  if (x <= 0) return 1;
+  const lead = -x + a * Math.log(x) - gammaln(a);
+  if (x < a + 1){
+    let s = 1 / a, d = s, ap = a;
+    for (let n = 0; n < 500; n++){ ap++; d *= x / ap; s += d; if (Math.abs(d) < Math.abs(s) * 1e-14) break; }
+    return Math.max(0, 1 - s * Math.exp(lead));
+  }
+  let b = x + 1 - a, c = 1e300, d = 1 / b, h = d;
+  for (let i = 1; i < 500; i++){
+    const an = -i * (i - a); b += 2;
+    d = an * d + b; if (Math.abs(d) < 1e-300) d = 1e-300;
+    c = b + an / c; if (Math.abs(c) < 1e-300) c = 1e-300;
+    d = 1 / d; const del = d * c; h *= del; if (Math.abs(del - 1) < 1e-14) break;
+  }
+  return Math.exp(lead) * h;
+}
+const chiP = (x, df) => df > 0 ? gammaQ(df / 2, x / 2) : 1;
+function erf(x){
+  const t = 1 / (1 + 0.3275911 * Math.abs(x));
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return x >= 0 ? y : -y;
+}
+const normP2 = z => 1 - erf(Math.abs(z) / Math.SQRT2);  // two-sided
+
+// Chi-square on a contingency table (rows and columns with no counts are dropped)
+function chiSq(t){
+  t = t.filter(r => sum(r) > 0);
+  const keep = t.length ? t[0].map((_, j) => t.some(r => r[j] > 0)) : [];
+  t = t.map(r => r.filter((_, j) => keep[j]));
+  const R = t.map(sum), Cs = t.length ? t[0].map((_, j) => sum(t.map(r => r[j]))) : [], N = sum(R);
+  let chi2 = 0;
+  const adj = t.map((r, i) => r.map((o, j) => {
+    const e = R[i] * Cs[j] / N; chi2 += (o - e) ** 2 / e;
+    const v = e * (1 - R[i] / N) * (1 - Cs[j] / N); return v > 0 ? (o - e) / Math.sqrt(v) : 0;
+  }));
+  const df = Math.max(0, (R.length - 1) * (Cs.length - 1)), m = Math.min(R.length, Cs.length) - 1;
+  return {chi2, df, N, V: m > 0 && N ? Math.sqrt(chi2 / (N * m)) : 0, adj, keep};
+}
+// Groups × categories from one row per unit; p from 4,000 shuffles of the group labels (exact-ish for small counts)
+const memo = new Map();
+function chiTest(groups, cats, G, Cs){
+  const key = "chi" + JSON.stringify([groups, cats]);
+  if (memo.has(key)) return memo.get(key);
+  const gi = groups.map(g => G.indexOf(g)), ci = cats.map(c => Cs.indexOf(c));
+  const table = idx => { const t = G.map(() => Cs.map(() => 0)); idx.forEach((g, u) => t[g][ci[u]]++); return t; };
+  const obs = chiSq(table(gi));
+  let res = {...obs, table: table(gi), p: null, pAsym: null};
+  if (obs.df > 0){
+    const r = rng(7), N = 4000, sh = gi.slice(); let hit = 0;
+    for (let i = 0; i < N; i++){ shuffleInPlace(sh, r); if (chiSq(table(sh)).chi2 >= obs.chi2 - 1e-9) hit++; }
+    res = {...res, p: (hit + 1) / (N + 1), pAsym: chiP(obs.chi2, obs.df)};
+  }
+  memo.set(key, res);
+  return res;
+}
+function ranksOf(vals){
+  const idx = vals.map((_, i) => i).sort((a, b) => vals[a] - vals[b]), r = Array(vals.length); let ties = 0;
+  for (let i = 0; i < idx.length;){
+    let j = i; while (j + 1 < idx.length && vals[idx[j + 1]] === vals[idx[i]]) j++;
+    for (let q = i; q <= j; q++) r[idx[q]] = (i + j) / 2 + 1;
+    const t = j - i + 1; ties += t * t * t - t; i = j + 1;
+  }
+  return {r, ties};
+}
+function choose(n, kk){ let c = 1; for (let i = 1; i <= kk; i++) c = c * (n - kk + i) / i; return Math.round(c); }
+// Mann–Whitney U: exact (every way of splitting the values) when that is ≤ 200,000 splits, else normal approximation
+function mannWhitney(x, y){
+  const n1 = x.length, n2 = y.length;
+  if (!n1 || !n2) return null;
+  const key = "mw" + JSON.stringify([x, y]);
+  if (memo.has(key)) return memo.get(key);
+  const n = n1 + n2, {r, ties} = ranksOf([...x, ...y]);
+  const R1 = sum(r.slice(0, n1)), U1 = R1 - n1 * (n1 + 1) / 2, mid = n1 * (n + 1) / 2;
+  const total = choose(n, n1); let p, exact = false;
+  if (total <= 200000){
+    exact = true; const obsD = Math.abs(R1 - mid) - 1e-9; let hit = 0;
+    const rec = (start, left, s) => { if (!left){ if (Math.abs(s - mid) >= obsD) hit++; return; } for (let i = start; i <= n - left; i++) rec(i + 1, left - 1, s + r[i]); };
+    rec(0, n1, 0); p = hit / total;
+  } else {
+    const sd = Math.sqrt(n1 * n2 / 12 * ((n + 1) - ties / (n * (n - 1))));
+    p = sd ? normP2(Math.max(0, Math.abs(U1 - n1 * n2 / 2) - .5) / sd) : 1;
+  }
+  const res = {U: Math.min(U1, n1 * n2 - U1), p: Math.min(1, p), exact, rb: 2 * U1 / (n1 * n2) - 1, n1, n2,
+               minP: exact ? Math.min(1, 2 / total) : null, m1: median(x), m2: median(y)};
+  memo.set(key, res);
+  return res;
+}
+// Kruskal–Wallis H across several groups; p from 4,000 shuffles (and the chi-square approximation)
+function kruskal(groups){
+  groups = groups.filter(g => g.length);
+  const kk = groups.length, all = groups.flat(), N = all.length;
+  if (kk < 2 || N <= kk) return null;
+  const key = "kw" + JSON.stringify(groups);
+  if (memo.has(key)) return memo.get(key);
+  const {r, ties} = ranksOf(all), sizes = groups.map(g => g.length), corr = 1 - ties / (N ** 3 - N);
+  const H = rr => { let off = 0, S = 0; sizes.forEach(s => { const R = sum(rr.slice(off, off + s)); S += R * R / s; off += s; }); const h = 12 / (N * (N + 1)) * S - 3 * (N + 1); return corr > 0 ? h / corr : 0; };
+  const obs = H(r), rand = rng(11), sh = r.slice(); let hit = 0;
+  for (let i = 0; i < 4000; i++){ shuffleInPlace(sh, rand); if (H(sh) >= obs - 1e-9) hit++; }
+  const res = {H: obs, df: kk - 1, p: (hit + 1) / 4001, pAsym: chiP(obs, kk - 1), eps2: obs / (N - 1), N, k: kk};
+  memo.set(key, res);
+  return res;
+}
+// Fisher's exact test on a 2×2 table [[a, b], [c, d]], two-sided
+function fisher(a, b, c, d){
+  const r1 = a + b, r2 = c + d, c1 = a + c, n = r1 + r2, lf = x => gammaln(x + 1);
+  const P = x => Math.exp(lf(r1) + lf(r2) + lf(c1) + lf(n - c1) - lf(n) - lf(x) - lf(r1 - x) - lf(c1 - x) - lf(r2 - c1 + x));
+  const lo = Math.max(0, c1 - r2), hi = Math.min(r1, c1), p0 = P(a); let p = 0;
+  for (let x = lo; x <= hi; x++){ const q = P(x); if (q <= p0 * (1 + 1e-7)) p += q; }
+  return {p: Math.min(1, p), or: ((a + .5) * (d + .5)) / ((b + .5) * (c + .5))};
+}
+const entropy = names => { const m = new Map(); names.forEach(n => m.set(n, (m.get(n) || 0) + 1)); return -sum([...m.values()].map(c => c / names.length * Math.log2(c / names.length))); };
+
+const fmtP = p => p == null ? "–" : p < .001 ? "p < .001" : `p = ${p.toFixed(3).replace(/^0/, "")}`;
+const fmtN = (v, d = 2) => v == null || !isFinite(v) ? "–" : (+v).toFixed(d);
+const pct = (a, b) => b ? `${Math.round(a / b * 100)}%` : "–";
+const sizeWord = (v, cut = [.1, .3, .5]) => v == null ? "" : Math.abs(v) < cut[0] ? "negligible" : Math.abs(v) < cut[1] ? "small" : Math.abs(v) < cut[2] ? "medium" : "large";
+
+/* ---------- Statistics: measures ---------- */
+const humanTasks = f => f.entries.filter(e => e.kind === "human" && !e.orphan);
+// AI_WORKING and AI_OUTPUT are often both coded BLACK_BOX: in a sequence, one AI column is one AI turn
+const seqTasks = f => f.entries.filter(e => e.kind !== "handoff" && !e.orphan).filter((e, i, a) => !(i && e.kind === "ai" && a[i - 1].kind === "ai" && a[i - 1].col === e.col && a[i - 1].task.name === e.task.name));
+// Each AI turn runs from its first row (AI_WORKING) to its last (AI_OUTPUT)
+const aiTurns = f => f.columns.filter(c => c.kind === "ai" && c.entries.some(e => !e.orphan)).map(c => {
+  const es = c.entries.filter(e => !e.orphan), t0 = es.map(e => e.start).find(t => t != null), t1 = [...es].reverse().map(e => e.lastT).find(t => t != null);
+  return {col: es[0].col, start: t0 ?? null, out: t1 ?? null};
+});
+const actionsOf = (f, kind) => f.entries.filter(e => e.kind === kind).flatMap(e => e.actions.filter(a => a.action).map(a => ({a, e})));
+const isPrompt = a => a.action && a.action.name === "SEND_PROMPT";
+const firstTime = f => { const ev = f.events.find(v => v.a.t != null); return ev ? ev.a.t : null; };
+const lastTime = f => { const ts = f.events.filter(v => v.a.t != null); return ts.length ? ts[ts.length - 1].a.t : null; };
+const nameAt = (e, level) => level === "taskFamily" ? famName(e.taskFam) : e.task.name;
+
+// A decision to move forward is an AUTHORIZE task, or any task with a reasoning coded on it.
+// Its review is the human work since the AI last answered (or since the previous decision, if that came later).
+function decisionsOf(f){
+  const E = f.entries, out = []; let prev = -1;
+  E.forEach((e, i) => {
+    if (e.kind === "handoff" || (e.orphan && !e.reason)) return;
+    if (!(e.task && e.task.name === "AUTHORIZE") && !e.reason) return;
+    let ai = -1;
+    for (let j = i - 1; j > prev; j--) if (E[j].kind === "ai" && !E[j].orphan){ ai = j; break; }
+    const turnsSince = new Set(E.slice(prev + 1, i).filter(x => x.kind === "ai" && !x.orphan).map(x => x.col)).size;
+    const from = Math.max(ai, prev);
+    const review = E.slice(from + 1, i).filter(x => x.kind === "human" && !x.orphan);
+    const since = E.slice(prev + 1, i);
+    const reviewStart = ai > prev ? E[ai].lastT : prev >= 0 ? E[prev].start : firstTime(f);  // from the AI's output appearing
+    const delibStart = prev >= 0 ? E[prev].start : firstTime(f);
+    const lead = [...E.slice(0, i)].reverse().find(x => x.kind !== "handoff" && !x.orphan);
+    out.push({f, cond: f.category, idx: out.length + 1, e, step: e.step >= 0 ? f.stepLabels[e.step] : "", row: e.row,
+      reason: e.reason ? e.reason.name : "(not coded)", t: e.start,
+      reviewSec: e.start != null && reviewStart != null && e.start >= reviewStart ? e.start - reviewStart : null,
+      delibSec: e.start != null && delibStart != null && e.start >= delibStart ? e.start - delibStart : null,
+      review, reviewFams: new Set(review.map(x => famName(x.taskFam))), reviewActions: sum(review.map(x => x.actions.filter(a => a.action).length)),
+      prompts: since.flatMap(x => x.actions || []).filter(isPrompt).length, aiRounds: turnsSince,
+      lead});
+    prev = i;
+  });
+  return out;
+}
+function metricsOf(f, decisions){
+  const H = humanTasks(f), A = aiTurns(f), t0 = firstTime(f), t1 = lastTime(f);
+  const fam = n => H.filter(e => famName(e.taskFam) === n).length;
+  const rev = decisions.map(d => d.reviewSec).filter(v => v != null);
+  return {
+    duration: t0 != null && t1 != null ? t1 - t0 : null,
+    humanTime: H.some(e => e.dur != null) ? sum(H.map(e => e.dur || 0)) : null,
+    aiTime: A.some(x => x.start != null && x.out != null) ? sum(A.map(x => x.start != null && x.out != null ? x.out - x.start : 0)) : null,
+    aiRounds: A.length, prompts: f.entries.flatMap(e => e.actions || []).filter(isPrompt).length,
+    humanTasks: H.length, humanActions: actionsOf(f, "human").length, decisions: decisions.length,
+    gather: fam("GATHER"), judge: fam("JUDGE"), steer: fam("STEER"),
+    goBacks: actionsOf(f, "human").filter(({a}) => a.action.name === "GO_BACK").length,
+    taskTypes: new Set(H.map(e => e.task.name)).size, entropy: H.length ? entropy(H.map(e => e.task.name)) : null,
+    medReview: median(rev), noReview: decisions.length ? decisions.filter(d => !d.review.length).length / decisions.length : null,
+  };
+}
+const METRICS = [
+  ["duration", "Session length", v => secs(v)], ["humanTime", "Human time on tasks", v => secs(v)], ["aiTime", "AI working time (AI_WORKING to AI_OUTPUT)", v => secs(v)],
+  ["aiRounds", "AI turns", v => fmtN(v, 0)], ["prompts", "Prompts sent", v => fmtN(v, 0)], ["humanTasks", "Human tasks", v => fmtN(v, 0)],
+  ["humanActions", "Human actions", v => fmtN(v, 0)], ["decisions", "Decisions to move forward", v => fmtN(v, 0)],
+  ["gather", "GATHER tasks", v => fmtN(v, 0)], ["judge", "JUDGE tasks", v => fmtN(v, 0)], ["steer", "STEER tasks", v => fmtN(v, 0)],
+  ["goBacks", "GO_BACK actions", v => fmtN(v, 0)], ["taskTypes", "Different task types used", v => fmtN(v, 0)],
+  ["entropy", "Task variety (entropy, bits)", v => fmtN(v, 2)], ["medReview", "Median review before deciding", v => secs(v)],
+  ["noReview", "Decisions with no review", v => v == null ? "–" : `${Math.round(v * 100)}%`],
+];
+
+/* ---------- Statistics: page ---------- */
+const COND = ["tight", "loose"];
+const condName = c => c === "tight" ? "Tight" : "Loose";
+const condVar = c => `var(--${c})`;
+let statTables = [];  // every table on the page, for the CSV download
+const nmHTML = (name, hex) => `<span class="nm"><span class="sw" style="background:${hex}"></span>${esc(name)}</span>`;
+// A table whose cells are plain values or {h: html, t: text, c: class}
+function tbl(title, head, rows, cls = ""){
+  statTables.push({title, head, rows: rows.map(r => r.cells ? r.cells : r).map(r => r.map(c => c && typeof c === "object" ? c.t : c))});
+  return `<div class="tw"><table class="st ${cls}"><thead><tr>${head.map((h, i) => `<th scope="col" class="${i ? "" : "l"}">${esc(h)}</th>`).join("")}</tr></thead><tbody>${
+    rows.map(r => { const cells = r.cells || r; return `<tr class="${r.cls || ""}">${cells.map(c => c && typeof c === "object" ? `<td class="${c.c || ""}">${c.h}</td>` : `<td>${esc(c ?? "")}</td>`).join("")}</tr>`; }).join("")
+  }</tbody></table></div>`;
+}
+const tipAttrs = (name, hex, lines, cls = "") => `class="tipme ${cls}" tabindex="0" data-name="${esc(name)}" data-hex="${hex || ""}" data-known="true" data-body="${esc(lines.filter(Boolean).join("\n"))}"`;
+function stackBar(parts, total, label){
+  return `<div class="bar" role="img" aria-label="${esc(label)}">${parts.filter(p => p.v > 0).map(p =>
+    `<span ${tipAttrs(p.name, p.hex, [label, `${p.text} · ${pct(p.v, total)}`])} style="flex:${p.v} 1 0;background:${p.hex}"></span>`).join("")}</div>`;
+}
+const catsPresent = (level, names) => [...ORDER[level].filter(n => names.includes(n)), ...[...new Set(names)].filter(n => !ORDER[level].includes(n))];
+const stCtl = (key, opts) => seg(opts, state.st[key], v => `data-st="${key}" data-v="${v}"`, key);
+const LEVEL_OPTS = [["taskFamily", "Task families"], ["task", "Task types"], ["actionFamily", "Action families"], ["action", "Actions"]];
+const lvName = lv => LEVEL_LABEL[lv].toLowerCase();
+const ONE = {task: "Task type", taskFamily: "Task family", action: "Action", actionFamily: "Action family"};
+
+function statsHTML(files){
+  statTables = [];
+  const S = files.map(f => { const d = decisionsOf(f); return {f, cond: f.category, decisions: d, m: metricsOf(f, d)}; });
+  const both = COND.every(c => S.some(s => s.cond === c));
+  const nC = c => S.filter(s => s.cond === c).length;
+  const D = S.flatMap(s => s.decisions);
+  return `
+    <div class="res-head">
+      <div>
+        <div class="eyebrow">Research question</div>
+        <h2>How do people convince themselves they can move forward?</h2>
+        <div class="stats"><span><b>${nC("tight")}</b> tight</span><span><b>${nC("loose")}</b> loose</span><span><b>${D.length}</b> decisions to move forward</span><span><b>${sum(S.map(s => s.m.humanTasks))}</b> human tasks</span></div>
+      </div>
+      <div class="row"><button class="btn small" type="button" data-dl="csv">Download CSVs</button></div>
+    </div>
+    ${!both ? `<p class="caveat">Load at least one TIGHT and one LOOSE transcript to compare them. Until then the tests below are left out and only the descriptions are shown.</p>` : ""}
+    ${overviewHTML(S, both)}
+    ${timelineHTML(S)}
+    ${compositionHTML(S, both)}
+    ${sequenceHTML(S, D, both)}
+    ${decisionHTML(S, D, both)}
+    ${processHTML(S, both)}
+    ${methodsHTML()}`;
+}
+
+function overviewHTML(S, both){
+  const D = S.flatMap(s => s.decisions);
+  const tile = (v, l) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`;
+  const by = c => D.filter(d => d.cond === c);
+  const medRev = c => secs(median(by(c).map(d => d.reviewSec).filter(v => v != null)));
+  const noRev = c => pct(by(c).filter(d => !d.review.length).length, by(c).length);
+  const checked = c => pct(by(c).filter(d => d.reviewFams.has("JUDGE")).length, by(c).length);
+  return `<div class="tiles">${COND.filter(c => S.some(s => s.cond === c)).map(c =>
+    tile(medRev(c), `${condName(c)}: median review before moving forward`) + tile(noRev(c), `${condName(c)}: moved forward with no review since the AI answered`) +
+    tile(checked(c), `${condName(c)}: decisions whose review included a JUDGE task`)).join("")}</div>`;
+}
+
+/* Section: timelines */
+function timelineHTML(S){
+  const lv = state.st.tl, span = Math.max(1, ...S.map(s => s.m.duration || 0));
+  const step = span > 1200 ? 300 : span > 600 ? 120 : 60;
+  const ticks = []; for (let t = 0; t <= span; t += step) ticks.push(t);
+  const names = new Set();
+  const rows = S.map(s => {
+    const t0 = firstTime(s.f);
+    if (t0 == null) return `<div class="tl-row"><span class="lab">${esc(s.f.name)}</span><span class="hint">No times</span></div>`;
+    const x = t => (t - t0) / span * 100;
+    const pieces = lv === "task" || lv === "taskFamily"
+      ? s.f.entries.filter(e => e.kind !== "handoff" && !e.orphan && e.start != null && e.dur).map(e => ({t: e.start, d: e.dur, name: nameAt(e, lv), hex: lv === "task" ? e.task.hex : e.taskFam.hex, who: e.kind, sub: lv === "task" ? famName(e.taskFam) : e.task.name, row: e.row}))
+      : s.f.entries.filter(e => e.kind !== "handoff").flatMap(e => e.actions.filter(a => a.action && a.t != null && a.dur).map(a => {
+          const x2 = lv === "action" ? a.action : (a.actFam || UNKNOWN_FAMILY); return {t: a.t, d: a.dur, name: x2.name, hex: x2.hex, who: e.kind, sub: lv === "action" ? famName(a.actFam) : a.action.name, row: a.row}; }));
+    pieces.forEach(p => names.add(p.name));
+    return `<div class="tl-row"><span class="lab"><span>${esc(s.f.name)}</span><span><span class="chip ${s.cond}">${s.cond}</span></span></span><div class="tl-track">
+      ${pieces.map(p => `<span ${tipAttrs(p.name, p.hex, [`${p.who === "ai" ? "AI" : "Human"} · ${p.sub}`, `${clock(p.t)} · ${secs(p.d)}`, `Row ${p.row}`], "seg")} style="left:${x(p.t)}%;width:${p.d / span * 100}%;background:${p.hex}"></span>`).join("")}
+      ${s.decisions.filter(d => d.t != null).map(d => `<span ${tipAttrs(`Moved forward: ${d.reason}`, hexOf(d.reason), [d.step, `${clock(d.t)} · review ${secs(d.reviewSec)}`, d.review.length ? `Review: ${d.review.map(e => e.task.name).join(", ")}` : "No review since the AI answered"], "mark")} style="left:${x(d.t)}%;background:${hexOf(d.reason)}"></span>`).join("")}
+    </div></div>`;
+  }).join("");
+  const reasons = [...new Set(S.flatMap(s => s.decisions.map(d => d.reason)))];
+  return `<section class="st-sec">
+    <div class="st-head"><div><span class="num">Overview</span><h3>Each session over time</h3></div><div class="st-ctl">${stCtl("tl", LEVEL_OPTS)}</div></div>
+    <p class="st-q">Every session starts at 0. Bars are ${lvName(lv)} sized by how long they lasted; diamonds are decisions to move forward, colored by the reasoning coded on them.</p>
+    ${legendHTML(catsPresent(lv, [...names]).map(n => ({name: n, hex: hexOf(n), known: true})))}
+    <div class="plot">${ticks.map(t => `<span class="gridl" style="left:calc(var(--labw) + 10px + (100% - var(--labw) - 10px) * ${t / span})"></span>`).join("")}${rows}
+      <div class="axis">${ticks.map(t => `<span style="left:${t / span * 100}%">${t / 60} min</span>`).join("")}</div></div>
+    ${reasons.length ? `<div class="legend">${reasons.map(r => `<span class="key-item"><span class="sw" style="background:${hexOf(r)};transform:rotate(45deg) scale(.8)"></span>${esc(r)}</span>`).join("")}</div>` : ""}
+  </section>`;
+}
+
+/* Section: task mix */
+function compositionHTML(S, both){
+  const lv = state.st.comp, byTime = state.st.measure === "time";
+  // Units are human tasks (task levels) or human actions (action levels)
+  const units = s => lv === "task" || lv === "taskFamily"
+    ? humanTasks(s.f).map(e => ({name: nameAt(e, lv), dur: e.dur}))
+    : actionsOf(s.f, "human").map(({a}) => ({name: (lv === "action" ? a.action : (a.actFam || UNKNOWN_FAMILY)).name, dur: a.dur}));
+  const U = S.map(s => ({s, u: units(s)}));
+  const cats = catsPresent(lv, U.flatMap(x => x.u.map(u => u.name)));
+  const val = u => byTime ? (u.dur || 0) : 1;
+  const tally = us => cats.map(c => sum(us.filter(u => u.name === c).map(val)));
+  const fmtV = v => byTime ? secs(v) : `${v}`;
+  const barRow = (label, us, cls) => { const t = tally(us), tot = sum(t);
+    return `<div class="bar-row ${cls}"><span class="lab" title="${esc(label)}">${esc(label)}</span>${stackBar(cats.map((c, i) => ({name: c, hex: hexOf(c), v: t[i], text: fmtV(t[i])})), tot, label)}<span class="n">${byTime ? secs(tot) : tot}</span></div>`; };
+  const conds = COND.filter(c => S.some(s => s.cond === c));
+  const bars = conds.map(c => barRow(condName(c), U.filter(x => x.s.cond === c).flatMap(x => x.u), "cond") +
+    U.filter(x => x.s.cond === c).map(x => barRow(x.s.f.name, x.u, "sess")).join("")).join("");
+
+  let tests = "";
+  if (both){
+    const flat = U.flatMap(x => x.u.map(u => ({g: x.s.cond, c: u.name})));
+    const ct = chiTest(flat.map(x => x.g), flat.map(x => x.c), COND, cats);
+    const tots = COND.map(c => sum(ct.table[COND.indexOf(c)]));
+    const keptCats = cats.filter((_, j) => ct.keep[j]);
+    const rows = cats.map((c, j) => {
+      const kj = keptCats.indexOf(c), z = kj >= 0 && ct.adj[0] ? ct.adj[0][kj] : null;
+      return [{h: nmHTML(c, hexOf(c)), t: c}, ...COND.map((g, gi) => `${ct.table[gi][j]} (${pct(ct.table[gi][j], tots[gi])})`),
+        {h: z == null ? "–" : `${z > 0 ? "+" : ""}${fmtN(z)}${Math.abs(z) >= 1.96 ? (z > 0 ? " more in tight" : " more in loose") : ""}`, t: fmtN(z), c: z != null && Math.abs(z) >= 1.96 ? "sig" : "dim"}];
+    });
+    const sig = ct.p != null && ct.p < .05;
+    tests += `<p class="result ${sig ? "" : "weak"}">${ct.df ? `${sig ? "The mix differs" : "No clear difference in the mix"} between tight and loose sessions: χ²(${ct.df}) = ${fmtN(ct.chi2)}, ${fmtP(ct.p)} (permutation; χ² approximation ${fmtP(ct.pAsym)}), Cramér’s V = ${fmtN(ct.V)} (${sizeWord(ct.V)}). Counts ${lv === "task" || lv === "taskFamily" ? "tasks" : "actions"}, N = ${ct.N}.` : "Not enough variety to test."}</p>`;
+    tests += `<div class="st-sub">Counts by workflow</div>` + tbl(`Task mix: ${lvName(lv)} by workflow (counts)`, [ONE[lv], "Tight n (%)", "Loose n (%)", "Adjusted residual z"], rows);
+    // Session level: each session's share of each category
+    const shares = cats.map(c => COND.map(g => U.filter(x => x.s.cond === g).map(x => { const t = tally(x.u), tot = sum(t); return tot ? t[cats.indexOf(c)] / tot : 0; })));
+    tests += `<div class="st-sub">Each session’s share (${byTime ? "of time" : "of the count"}), compared across sessions</div>` + tbl(`Task mix: ${lvName(lv)} share per session (${byTime ? "time" : "count"})`, [ONE[lv], "Tight median", "Loose median", "Mann–Whitney U", "p (exact)", "Rank-biserial r"],
+      cats.map((c, i) => { const mw = mannWhitney(shares[i][0], shares[i][1]);
+        return [{h: nmHTML(c, hexOf(c)), t: c}, pct(mw.m1, 1), pct(mw.m2, 1), fmtN(mw.U, 1), {h: fmtP(mw.p).replace("p = ", ""), t: fmtN(mw.p, 3), c: mw.p < .05 ? "sig" : ""}, fmtN(mw.rb)]; }));
+  }
+  return `<section class="st-sec">
+    <div class="st-head"><div><span class="num">1 · Quantity</span><h3>What people did on their side of the workflow</h3></div>
+      <div class="st-ctl">${stCtl("comp", LEVEL_OPTS)}${stCtl("measure", [["count", "Count"], ["time", "Time"]])}</div></div>
+    <p class="st-q">Do tight and loose sessions differ in how much of each ${ONE[lv].toLowerCase()} people did? Human ${lv.startsWith("task") ? "tasks" : "actions"} only (AI work is in sections 2 and 4). ${byTime ? "Bars show time spent; the χ² test always uses counts." : ""}</p>
+    ${legendHTML(cats.map(n => ({name: n, hex: hexOf(n), known: true})))}
+    <div class="bars">${bars}</div>
+    ${tests}
+  </section>`;
+}
+
+/* Section: sequences */
+function sequenceHTML(S, D, both){
+  const lv = state.st.seq;
+  const pairs = S.flatMap(s => { const q = seqTasks(s.f).map(e => nameAt(e, lv)); return q.slice(1).map((to, i) => ({g: s.cond, from: q[i], to})); });
+  const cats = catsPresent(lv, pairs.flatMap(p => [p.from, p.to]));
+  const heat = c => {
+    const P = pairs.filter(p => p.g === c);
+    if (!P.length) return "";
+    const rowsT = cats.map(a => cats.map(b => P.filter(p => p.from === a && p.to === b).length));
+    statTables.push({title: `Transitions (${lvName(lv)}), ${condName(c)}: rows are from, columns are to`, head: ["From \\ to", ...cats], rows: cats.map((a, i) => [a, ...rowsT[i]])});
+    return `<table class="heat"><caption>${condName(c)} · ${P.length} transitions</caption><thead><tr><th></th>${cats.map(b => `<th scope="col" title="${esc(b)}"><span class="sw" style="background:${hexOf(b)};display:inline-block;width:12px;height:12px"></span></th>`).join("")}</tr></thead><tbody>${
+      cats.map((a, i) => { const tot = sum(rowsT[i]); return `<tr><th scope="row">${nmHTML(a, hexOf(a))}</th>${cats.map((b, j) => { const n = rowsT[i][j], share = tot ? n / tot : 0;
+        return `<td ${tipAttrs(`${a} → ${b}`, "", [`${n} of ${tot} transitions out of ${a} (${pct(n, tot)})`, condName(c)])} style="${n ? `background:color-mix(in srgb, var(--accent) ${Math.round(15 + share * 85)}%, var(--sheet));color:${share > .45 ? "var(--accent-ink)" : "var(--ink)"}` : ""}">${n || ""}</td>`; }).join("")}</tr>`; }).join("")
+    }</tbody></table>`;
+  };
+  let tests = "";
+  if (both){
+    const ct = chiTest(pairs.map(p => p.g), pairs.map(p => `${p.from} → ${p.to}`), COND, [...new Set(pairs.map(p => `${p.from} → ${p.to}`))]);
+    const sig = ct.p != null && ct.p < .05;
+    tests += `<p class="result ${sig ? "" : "weak"}">${ct.df ? `${sig ? "The paths differ" : "No clear difference in the paths"} between tight and loose sessions: χ²(${ct.df}) = ${fmtN(ct.chi2)}, ${fmtP(ct.p)} (permutation), Cramér’s V = ${fmtN(ct.V)} (${sizeWord(ct.V)}), over ${ct.N} transitions.` : "Not enough variety to test."}</p>`;
+  }
+  // What came right before each decision to move forward
+  const leads = catsPresent(lv, D.filter(d => d.lead).map(d => nameAt(d.lead, lv)));
+  const leadRows = leads.map(n => [{h: nmHTML(n, hexOf(n)), t: n}, ...COND.map(c => { const dc = D.filter(d => d.cond === c), x = dc.filter(d => d.lead && nameAt(d.lead, lv) === n).length; return `${x} (${pct(x, dc.length)})`; })]);
+  // Did people review, check or steer before moving forward?
+  const flags = [
+    ["Moved forward with no review since the AI answered", d => !d.review.length],
+    ["Review included a GATHER task", d => d.reviewFams.has("GATHER")],
+    ["Review included a JUDGE task", d => d.reviewFams.has("JUDGE")],
+    ["Review included CHECK_AGAINST_RECORDS", d => d.review.some(e => e.task.name === "CHECK_AGAINST_RECORDS")],
+    ["Prompted the AI again since the last decision", d => d.prompts > 0],
+  ];
+  const flagRows = flags.map(([label, fn]) => {
+    const a = D.filter(d => d.cond === "tight" && fn(d)).length, nt = D.filter(d => d.cond === "tight").length;
+    const c = D.filter(d => d.cond === "loose" && fn(d)).length, nl = D.filter(d => d.cond === "loose").length;
+    const fx = both && nt && nl ? fisher(a, nt - a, c, nl - c) : null;
+    return [label, `${a} of ${nt} (${pct(a, nt)})`, `${c} of ${nl} (${pct(c, nl)})`, {h: fx ? fmtP(fx.p).replace("p = ", "") : "–", t: fx ? fmtN(fx.p, 3) : "", c: fx && fx.p < .05 ? "sig" : ""}, fx ? fmtN(fx.or) : "–"];
+  });
+  return `<section class="st-sec">
+    <div class="st-head"><div><span class="num">2 · Process</span><h3>How people moved through the workflow</h3></div><div class="st-ctl">${stCtl("seq", LEVEL_OPTS.slice(0, 2))}</div></div>
+    <p class="st-q">Which ${lvName(lv)} follow which, counting human and AI tasks in order? Each row of a grid is where people were; each column is where they went next. Darker cells are a larger share of that row.</p>
+    <div class="heats">${COND.map(heat).join("")}</div>
+    ${tests}
+    <div class="st-sub">What came right before moving forward</div>
+    ${tbl(`Task right before each decision to move forward (${lvName(lv)})`, [ONE[lv], "Tight decisions", "Loose decisions"], leadRows)}
+    <div class="st-sub">What people did between the AI’s answer and moving forward</div>
+    ${tbl("Review before each decision, by workflow (Fisher’s exact test)", ["", "Tight", "Loose", "p (Fisher)", "Odds ratio"], flagRows)}
+  </section>`;
+}
+
+/* Section: decisions */
+function decisionHTML(S, D, both){
+  const reasons = catsPresent("reason", D.map(d => d.reason));
+  const conds = COND.filter(c => D.some(d => d.cond === c));
+  const bars = conds.map(c => { const dc = D.filter(d => d.cond === c); const t = reasons.map(r => dc.filter(d => d.reason === r).length);
+    return `<div class="bar-row cond"><span class="lab">${condName(c)}</span>${stackBar(reasons.map((r, i) => ({name: r, hex: hexOf(r), v: t[i], text: `${t[i]} decisions`})), dc.length, condName(c))}<span class="n">${dc.length}</span></div>`; }).join("");
+  let tests = "";
+  if (both){
+    const ct = chiTest(D.map(d => d.cond), D.map(d => d.reason), COND, reasons);
+    const sig = ct.p != null && ct.p < .05;
+    tests += `<p class="result ${sig ? "" : "weak"}">${ct.df ? `${sig ? "People gave different reasons" : "No clear difference in the reasons given"} in tight and loose sessions: χ²(${ct.df}) = ${fmtN(ct.chi2)}, ${fmtP(ct.p)} (permutation), Cramér’s V = ${fmtN(ct.V)} (${sizeWord(ct.V)}), N = ${ct.N} decisions.` : "Only one reason was coded, so there is nothing to test."}</p>`;
+  }
+  // Review time by reason, dots colored by workflow
+  const timed = D.filter(d => d.reviewSec != null), maxT = Math.max(10, ...timed.map(d => d.reviewSec));
+  const stepT = maxT > 300 ? 60 : maxT > 120 ? 30 : maxT > 40 ? 10 : 5, ticks = [];
+  for (let t = 0; t <= maxT; t += stepT) ticks.push(t);
+  const dotRows = reasons.map(r => { const ds = timed.filter(d => d.reason === r), m = median(ds.map(d => d.reviewSec));
+    return `<div class="prow"><span class="lab">${nmHTML(r, hexOf(r))}</span><div class="track">${m != null ? `<span class="med" style="left:${m / maxT * 100}%" title="Median ${secs(m)}"></span>` : ""}${ds.map(d =>
+      `<span ${tipAttrs(`${r} · ${secs(d.reviewSec)}`, hexOf(r), [`${d.f.name} (${d.cond})`, d.step, d.review.length ? `Review: ${d.review.map(e => e.task.name).join(", ")}` : "No review since the AI answered", `Row ${d.row}`], "pt")} style="left:${d.reviewSec / maxT * 100}%;background:${condVar(d.cond)}"></span>`).join("")}</div></div>`; }).join("");
+  const dots = timed.length ? `<div class="st-sub">Review time before moving forward, by reasoning</div>
+    <div>${conds.map(c => `<span class="cond-key"><i style="background:${condVar(c)}"></i>${condName(c)}</span>`).join("")}<span class="cond-key"><i style="background:var(--ink);border-radius:1px;width:2px;height:12px;opacity:.55"></i>Median</span></div>
+    <div class="plot">${ticks.map(t => `<span class="gridl" style="left:calc(var(--labw) + 10px + (100% - var(--labw) - 10px) * ${t / maxT})"></span>`).join("")}${dotRows}
+      <div class="axis">${ticks.map(t => `<span style="left:${t / maxT * 100}%">${t} s</span>`).join("")}</div></div>` : `<p class="hint">No decisions have usable times.</p>`;
+  // Tests on time
+  const timeRows = [];
+  const rev = c => timed.filter(d => d.cond === c).map(d => d.reviewSec), del = c => D.filter(d => d.cond === c && d.delibSec != null).map(d => d.delibSec);
+  if (both){
+    [["Review: AI’s answer to moving forward", rev], ["Deliberation: previous decision to this one", del]].forEach(([label, fn]) => {
+      const mw = mannWhitney(fn("tight"), fn("loose"));
+      if (mw) timeRows.push([label, secs(mw.m1), secs(mw.m2), `Mann–Whitney U = ${fmtN(mw.U, 1)}`, {h: fmtP(mw.p), t: fmtN(mw.p, 3), c: mw.p < .05 ? "sig" : ""}, `r = ${fmtN(mw.rb)} (${sizeWord(mw.rb)})`]);
+    });
+  }
+  const kw = kruskal(reasons.map(r => timed.filter(d => d.reason === r).map(d => d.reviewSec)));
+  if (kw) timeRows.push(["Review time across reasonings", "", "", `Kruskal–Wallis H(${kw.df}) = ${fmtN(kw.H)}`, {h: fmtP(kw.p), t: fmtN(kw.p, 3), c: kw.p < .05 ? "sig" : ""}, `ε² = ${fmtN(kw.eps2)}`]);
+  // What evidence went with each reasoning
+  const prof = reasons.map(r => { const ds = D.filter(d => d.reason === r), n = ds.length, has = f => ds.filter(f).length;
+    const common = new Map(); ds.forEach(d => new Set(d.review.map(e => e.task.name)).forEach(t => common.set(t, (common.get(t) || 0) + 1)));
+    return [{h: nmHTML(r, hexOf(r)), t: r}, n, COND.map(c => ds.filter(d => d.cond === c).length).join(" / "), secs(median(ds.map(d => d.reviewSec).filter(v => v != null))),
+      pct(has(d => !d.review.length), n), pct(has(d => d.reviewFams.has("GATHER")), n), pct(has(d => d.reviewFams.has("JUDGE")), n), pct(has(d => d.prompts > 0), n),
+      {h: esc([...common].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t, x]) => `${t} (${x})`).join(", ") || "–"), t: [...common].map(([t, x]) => `${t} (${x})`).join("; "), c: "wrap l"}]; });
+  const list = D.map(d => [d.f.name, d.cond, d.step || "–", {h: nmHTML(d.reason, hexOf(d.reason)), t: d.reason}, clock(d.t) || "–", secs(d.reviewSec), secs(d.delibSec),
+    d.reviewActions, d.prompts, {h: esc(d.review.map(e => e.task.name).join(" → ") || "No review"), t: d.review.map(e => e.task.name).join(" > "), c: "wrap l"}, d.row]);
+  return `<section class="st-sec">
+    <div class="st-head"><div><span class="num">3 · Decisions</span><h3>When and why people moved forward</h3></div></div>
+    <p class="st-q">Each AUTHORIZE task (or task with a reasoning coded on it) is one decision. Its review is the human work between the AI’s last answer and the decision; its deliberation runs from the previous decision (or the session start).</p>
+    <div class="st-sub">Reasoning to move forward</div>
+    ${legendHTML(reasons.map(n => ({name: n, hex: hexOf(n), known: true})))}
+    <div class="bars">${bars}</div>
+    ${tests}
+    ${dots}
+    ${timeRows.length ? tbl("Time to decide", ["", "Tight median", "Loose median", "Test", "p", "Effect size"], timeRows) : ""}
+    <div class="st-sub">What each reasoning rested on</div>
+    ${tbl("Evidence before each reasoning", ["Reasoning", "Decisions", "Tight / loose", "Median review", "No review", "With GATHER", "With JUDGE", "Re-prompted", "Most common review tasks"], prof)}
+    <details><summary class="st-sub" style="cursor:pointer">Every decision (${D.length})</summary>
+    ${tbl("Every decision to move forward", ["Session", "Workflow", "Phase", "Reasoning", "At", "Review", "Deliberation", "Review actions", "Prompts", "Review tasks", "Row"], list)}</details>
+  </section>`;
+}
+
+/* Section: per-session process measures */
+function processHTML(S, both){
+  const rows = METRICS.map(([key, label, fmt]) => {
+    const v = c => S.filter(s => s.cond === c).map(s => s.m[key]).filter(x => x != null);
+    const mw = both ? mannWhitney(v("tight"), v("loose")) : null;
+    return [label, ...COND.map(c => { const xs = v(c); return xs.length ? `${fmt(median(xs))}${xs.length > 1 ? ` (${fmt(Math.min(...xs))}–${fmt(Math.max(...xs))})` : ""}` : "–"; }),
+      mw ? fmtN(mw.U, 1) : "–", {h: mw ? fmtP(mw.p).replace("p = ", "") : "–", t: mw ? fmtN(mw.p, 3) : "", c: mw && mw.p < .05 ? "sig" : ""}, mw ? fmtN(mw.rb) : "–"];
+  });
+  const minP = both ? mannWhitney(S.filter(s => s.cond === "tight").map(() => 0), S.filter(s => s.cond === "loose").map(() => 1)) : null;
+  const per = S.map(s => [s.f.name, s.cond, ...METRICS.map(([key, , fmt]) => fmt(s.m[key]))]);
+  return `<section class="st-sec">
+    <div class="st-head"><div><span class="num">4 · Sessions</span><h3>Session by session</h3></div></div>
+    <p class="st-q">One number per session, so each person counts once. Medians with the range in brackets; Mann–Whitney U with exact p-values.${minP ? ` With ${minP.n1} tight and ${minP.n2} loose sessions the smallest p this test can give is ${fmtN(minP.minP, 3)}.` : ""}</p>
+    ${tbl("Per-session measures by workflow", ["Measure", "Tight median (range)", "Loose median (range)", "Mann–Whitney U", "p (exact)", "Rank-biserial r"], rows)}
+    <details><summary class="st-sub" style="cursor:pointer">Every session (${S.length})</summary>${tbl("Every session", ["Session", "Workflow", ...METRICS.map(([, l]) => l)], per)}</details>
+  </section>`;
+}
+
+function methodsHTML(){
+  return `<section class="st-sec">
+    <div class="st-head"><div><span class="num">Notes</span><h3>How these are worked out</h3></div></div>
+    <ul class="methods">
+      <li><b>Times</b> are minutes.seconds (24.05 is 24:05; 25.1 is 25:10). Each row lasts until the next row with a time. A time earlier than the row before it is flagged on the left and left out.</li>
+      <li><b>Decision to move forward</b>: an AUTHORIZE task, or any task with a Reasoning to Move Forward. <b>Review</b>: human tasks after the AI’s last turn (or the previous decision, if later). <b>Review time</b>: from the AI’s last output (its AI_OUTPUT row) to the decision. AI_WORKING and AI_OUTPUT rows in one AI column count as one AI turn. <b>Deliberation</b>: from the previous decision (or session start) to this one.</li>
+      <li><b>χ² tests</b> (task mix, paths, reasonings) give a permutation p-value from 4,000 shuffles of the tight/loose labels, which holds up with small counts; the usual χ² approximation is shown where it differs. <b>Cramér’s V</b>: about .1 small, .3 medium, .5 large. <b>Adjusted residuals</b> beyond ±1.96 mark the categories driving a difference.</li>
+      <li><b>Mann–Whitney U</b> compares two groups without assuming normal data; p is exact when there are few enough values. <b>Rank-biserial r</b> runs from −1 to 1; positive means tight tends higher. <b>Kruskal–Wallis H</b> compares several groups (here, reasonings); ε² is its effect size.</li>
+      <li><b>Fisher’s exact test</b> compares two proportions with small counts. An odds ratio above 1 means the behavior is more likely in tight sessions.</li>
+      <li><b>Units</b>: tests on tasks, transitions or decisions treat each as independent, though several come from one person; the session-by-session table counts each person once and is the safer basis for claims.</li>
+    </ul>
+  </section>`;
+}
+
+/* ---------- Statistics: CSV downloads ---------- */
 const csvCell = v => { v = String(v ?? ""); return /[",\n\r]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v; };
+function statsCSV(files){
+  statsHTML(files);  // fills statTables
+  const lines = [];
+  statTables.forEach(t => { lines.push(csvCell(t.title), t.head.map(csvCell).join(","), ...t.rows.map(r => r.map(csvCell).join(",")), ""); });
+  return lines.join("\r\n") + "\r\n";
+}
+function eventsCSV(files){
+  const head = ["session", "workflow", "row", "phase", "time", "time_s", "duration_s", "agent", "task_no", "action", "action_family", "task_type", "task_family", "handoff", "reasoning", "decision_no", "in_review_of_decision"];
+  const lines = [head.join(",")];
+  files.forEach(f => {
+    const D = decisionsOf(f), reviewOf = new Map(), decOf = new Map();
+    D.forEach(d => { decOf.set(d.e, d.idx); d.review.forEach(e => reviewOf.set(e, d.idx)); });
+    let taskNo = 0;
+    f.entries.forEach(e => {
+      if (e.kind !== "handoff" && !e.orphan) taskNo++;
+      const items = e.kind === "handoff" ? [e] : e.actions;
+      items.forEach(a => lines.push([f.name, f.category, a.row, e.step >= 0 ? f.stepLabels[e.step] : "", a.t != null ? clock(a.t) : "", a.t ?? "", a.dur ?? "", e.kind,
+        e.kind === "handoff" || e.orphan ? "" : taskNo, a.action ? a.action.name : "", a.actFam ? a.actFam.name : "", e.task ? e.task.name : "", e.taskFam ? e.taskFam.name : "",
+        e.hand ? e.hand.name : "", a.reason ? a.reason.name : "", decOf.get(e) ?? "", reviewOf.get(e) ?? ""].map(csvCell).join(",")));
+    });
+  });
+  return lines.join("\r\n") + "\r\n";
+}
+
+/* ---------- Map CSV export ---------- */
 function stepRow(f){
   const out = f.columns.map(() => "");
   f.steps.forEach(s => {
@@ -614,8 +1308,8 @@ function blockMatrix(f, withTitle){
   const pad = a => { while (a.length < w) a.push(""); return a; };
   const rows = [];
   if (withTitle) rows.push(pad([`${f.name} (${f.category})`]));
-  if (f.category === "tight" || withTitle) rows.push(pad(f.category === "tight" ? stepRow(f) : []));
-  rows.push(pad(f.columns.map(c => c.sub ? `${c.label} · ${LEVEL_NAME[c.sub]}` : c.label)));
+  if (f.steps.length || withTitle) rows.push(pad(f.steps.length ? stepRow(f) : []));
+  rows.push(pad(f.columns.map(c => c.sub ? `${c.label} · ${SUB_LABEL[c.sub]}` : c.label)));
   // A tall square (all-levels view) repeats its color on every row it spans
   const held = f.columns.map(() => "");
   for (let r = 0; r < f.rowsMax; r++) rows.push(pad(f.columns.map((c, i) => { const x = c.cells[r]; return held[i] = x ? x.hex : x === null ? held[i] : ""; })));
@@ -642,18 +1336,19 @@ function tabCSV(tab){
   const legend = legendOf(tab.files);
   const lines = grid.map(r => r.map(csvCell).join(","));
   lines.push("", "Legend,Hex", ...legend.map(x => `${csvCell(x.name)},${x.hex}`));
+  if (tab.level !== "all" && tab.files.some(f => f.columns.some(c => c.cells.some(x => x && x.reason))))
+    lines.push("", "Reasoning to move forward is shown as a dot on the PNG; see the -all-levels files for it as a column.");
   return lines.join("\r\n") + "\r\n";
 }
 
 /* ---------- PNG export ---------- */
 const P = {col: 76, row: 26, sq: 18, head: 28, step: 32, title: 22, group: 24, pad: 24, gapBlock: 28, gapGroup: 56};
-function measureBlock(f){ return {w: Math.max(1, f.columns.length) * P.col, h: (f.category === "tight" ? P.step : 0) + P.head + f.rowsMax * P.row}; }
+function measureBlock(f){ return {w: Math.max(1, f.columns.length) * P.col, h: (f.steps.length ? P.step : 0) + P.head + f.rowsMax * P.row}; }
 function tabPNG(tab){
   const multi = tab.id === "all";
   const groups = groupsOf(tab);
   const legend = legendOf(tab.files);
   const fontSans = '"IBM Plex Sans", system-ui, sans-serif', fontMono = '"IBM Plex Mono", ui-monospace, monospace';
-  // Layout
   // Workflows stacked top to bottom: tight group first, then loose
   const placed = [];
   const headTop = P.pad + 30;
@@ -687,8 +1382,7 @@ function tabPNG(tab){
   c.fillStyle = "#ffffff"; c.fillRect(0, 0, W, H);
   c.textBaseline = "middle";
   const heading = multi ? "All workflows" : tab.title;
-  const sub = (multi ? `${tab.files.length} workflows · stacked, tight first` : `${tab.files[0].category.toUpperCase()} WORKFLOW`) +
-    ({micro: " · MICRO TASKS", high: " · MACRO TASKS", all: " · MICRO, TASK AND MACRO"}[tab.level] || "");
+  const sub = (multi ? `${tab.files.length} workflows · stacked, tight first` : `${tab.files[0].category.toUpperCase()} WORKFLOW`) + ` · ${LEVEL_LABEL[tab.level || "task"].toUpperCase()}`;
   c.fillStyle = "#1c232b"; c.font = `600 16px ${fontSans}`; c.fillText(heading, P.pad, P.pad + 8);
   const tw = c.measureText(heading).width;
   c.fillStyle = "#5b6672"; c.font = `11px ${fontMono}`; c.fillText(sub, P.pad + tw + 12, P.pad + 9);
@@ -704,7 +1398,7 @@ function tabPNG(tab){
   placed.forEach(({f, x: bx, y: by, ty}) => {
     if (multi){ c.fillStyle = "#1c232b"; c.font = `500 12px ${fontSans}`; c.fillText(fit(c, f.name, maxW), bx, ty); }
     let y = by;
-    if (f.category === "tight"){
+    if (f.steps.length){
       f.steps.forEach(s => {
         const sx = bx + s.start * P.col + 3, sw = (s.end - s.start + 1) * P.col - 6;
         c.strokeStyle = "#1c232b"; c.lineWidth = 1.5;
@@ -726,7 +1420,7 @@ function tabPNG(tab){
       c.textAlign = "center";
       if (col.sub){  // all-levels view: column on top, level below
         c.fillStyle = "#5b6672"; c.font = `9px ${fontMono}`; c.fillText(col.label, cx + P.col/2, y + 8);
-        c.fillStyle = "#1c232b"; c.font = `600 10px ${fontSans}`; c.fillText(LEVEL_NAME[col.sub], cx + P.col/2, y + 18);
+        c.fillStyle = "#1c232b"; c.font = `600 10px ${fontSans}`; c.fillText(SUB_LABEL[col.sub], cx + P.col/2, y + 18);
       } else { c.fillStyle = "#1c232b"; c.font = `500 11px ${fontMono}`; c.fillText(col.label, cx + P.col/2, y + P.head/2 - 1); }
       c.textAlign = "left";
     });
@@ -736,6 +1430,10 @@ function tabPNG(tab){
         const cell = col.cells[r]; if (!cell) return;
         const cx = bx + i * P.col + (P.col - P.sq)/2, cy = y + P.head + r * P.row + (P.row - P.sq)/2;
         swatch(c, cx, cy, P.sq, cell, col.sub ? P.sq + ((cell.rows || 1) - 1) * P.row : P.sq);
+        if (cell.reason && f.level !== "all"){
+          c.beginPath(); c.arc(cx + P.sq, cy, 5, 0, 2 * Math.PI); c.fillStyle = cell.reason.hex; c.fill();
+          c.strokeStyle = "#ffffff"; c.lineWidth = 1.5; c.stroke();
+        }
       });
     }
     // grid lines
@@ -794,36 +1492,36 @@ async function saveFile(filename, data){
 const fileBase = tab => (tab.id === "all" ? "all-workflows" : slug(tab.title)) + LEVEL_SUFFIX[tab.level || "task"];
 function setStatus(msg, cls){ const s = $("dl-status"); s.textContent = msg; s.className = "status" + (cls ? " " + cls : ""); }
 function explain(e){ return e && e.code === "rate_limited" ? "Another save prompt is still open. Finish it, then try again." : `The file could not be saved (${(e && (e.message || e.code)) || "unknown error"}).`; }
+const statsFiles = () => state.files.length ? [["statistics-tables.csv", () => statsCSV(orderedFiles())], ["coded-events.csv", () => eventsCSV(orderedFiles())]] : [];
 
-// Workflows with micro or macro tasks save every version of each file
+// Every level of each map is saved
 const tabVersions = tab => levelsOf(tab).map(level => tabAt(tab, level));
 async function downloadOne(tab, kind){
   try{
     const saved = [], skipped = [];
-    for (const v of tabVersions(tab)){
-      const name = `${fileBase(v)}-visual.${kind}`;
-      const r = await saveFile(name, kind === "csv" ? tabCSV(v) : await tabPNG(v));
+    const jobs = tab.id === "stats" ? (kind === "csv" ? statsFiles() : [])
+      : tabVersions(tab).map(v => [`${fileBase(v)}-visual.${kind}`, () => kind === "csv" ? tabCSV(v) : tabPNG(v)]);
+    for (const [name, make] of jobs){
+      const r = await saveFile(name, await make());
       (r === "saved" ? saved : skipped).push(name);
-      if (!downloadsNS && v.level === "task" && levelsOf(tab).length > 1) await new Promise(res => setTimeout(res, 350));
+      if (!downloadsNS && jobs.length > 1) await new Promise(res => setTimeout(res, 350));
     }
-    setStatus([saved.length ? `Saved ${saved.join(" and ")}.` : "", skipped.length ? `Skipped ${skipped.join(" and ")}.` : ""].filter(Boolean).join(" "), saved.length ? "ok" : "");
+    setStatus([saved.length ? `Saved ${saved.join(", ")}.` : "", skipped.length ? `Skipped ${skipped.join(", ")}.` : ""].filter(Boolean).join(" "), saved.length ? "ok" : "");
   } catch(e){ setStatus(explain(e), "bad"); }
 }
+const allJobs = () => [...mapTabs().flatMap(tabVersions).flatMap(v => ["csv", "png"].map(kind =>
+  [`${fileBase(v)}-visual.${kind}`, () => kind === "csv" ? tabCSV(v) : tabPNG(v)])), ...statsFiles()];
 async function downloadAll(){
-  const t = tabs(); let saved = 0, skipped = 0;
-  const total = t.reduce((a, x) => a + levelsOf(x).length * 2, 0);
+  const jobs = allJobs(); let saved = 0, skipped = 0;
   const btn = $("dl-all"); btn.disabled = true;
   try{
-    for (const v of t.flatMap(tabVersions)){
-      for (const kind of ["csv","png"]){
-        const name = `${fileBase(v)}-visual.${kind}`;
-        setStatus(`Saving ${name} (${saved + skipped + 1} of ${total})…`);
-        const r = await saveFile(name, kind === "csv" ? tabCSV(v) : await tabPNG(v));
-        r === "saved" ? saved++ : skipped++;
-        if (!downloadsNS) await new Promise(res => setTimeout(res, 350));
-      }
+    for (const [name, make] of jobs){
+      setStatus(`Saving ${name} (${saved + skipped + 1} of ${jobs.length})…`);
+      const r = await saveFile(name, await make());
+      r === "saved" ? saved++ : skipped++;
+      if (!downloadsNS) await new Promise(res => setTimeout(res, 350));
     }
-    setStatus(`Saved ${saved} of ${total} files${skipped ? `, skipped ${skipped}` : ""}.`, "ok");
+    setStatus(`Saved ${saved} of ${jobs.length} files${skipped ? `, skipped ${skipped}` : ""}.`, "ok");
   } catch(e){ setStatus(explain(e), "bad"); }
   btn.disabled = false;
 }
@@ -831,10 +1529,7 @@ async function downloadZip(){
   if (!window.JSZip){ setStatus("The zip tool did not load. Use Download all files instead.", "bad"); return; }
   try{
     const zip = new JSZip();
-    for (const v of tabs().flatMap(tabVersions)){
-      zip.file(`${fileBase(v)}-visual.csv`, tabCSV(v));
-      zip.file(`${fileBase(v)}-visual.png`, await tabPNG(v));
-    }
+    for (const [name, make] of allJobs()) zip.file(name, await make());
     const blob = await zip.generateAsync({type: "blob"});
     const r = await saveFile("handoff-maps.zip", blob);
     setStatus(r === "saved" ? "Saved handoff-maps.zip." : "Skipped the zip file.", r === "saved" ? "ok" : "");
@@ -844,32 +1539,36 @@ async function downloadZip(){
 /* ---------- Hover tooltip ---------- */
 (function(){
   const tip = $("tip"); let cur = null;
-  const KIND = {human: "Human task", ai: "AI task", handoff: "Handoff"};
-  function show(td){
-    if (cur && cur !== td) cur.classList.remove("on");
-    cur = td; td.classList.add("on");
-    const d = td.dataset;
-    tip.innerHTML = `<div class="tip-top"><span class="sw ${d.known === "true" ? "" : "sq unknown"}" style="background:${d.hex};margin:0"></span>${esc(d.name)}</div>
-      <div class="tip-meta">${KIND[d.kind]} · ${esc(d.col)} · item ${d.pos}${d.step ? `<br>${esc(d.step)}` : ""}${d.extra ? `<br>${esc(d.extra).replace(/\n/g, "<br>")}` : ""}<br>${d.hex}${d.known === "true" ? "" : " · no color set"}</div>`;
+  const SEL = "td.hit, .tipme";
+  function show(el){
+    if (cur && cur !== el) cur.classList.remove("on");
+    cur = el; el.classList.add("on");
+    const d = el.dataset;
+    tip.innerHTML = `<div class="tip-top">${d.hex ? `<span class="sw ${d.known === "true" ? "" : "sq unknown"}" style="background:${d.hex};margin:0"></span>` : ""}${esc(d.name)}</div>
+      ${d.body ? `<div class="tip-meta">${esc(d.body).replace(/\n/g, "<br>")}</div>` : ""}`;
     tip.hidden = false;
-    const r = td.getBoundingClientRect(), t = tip.getBoundingClientRect();
+    const r = el.getBoundingClientRect(), t = tip.getBoundingClientRect();
     let x = r.left + r.width / 2 - t.width / 2, y = r.top - t.height - 8;
     if (y < 8) y = r.bottom + 8;
     x = Math.max(8, Math.min(x, window.innerWidth - t.width - 8));
     tip.style.left = x + "px"; tip.style.top = y + "px";
   }
   function hide(){ tip.hidden = true; if (cur) cur.classList.remove("on"); cur = null; }
-  document.addEventListener("mouseover", e => { const td = e.target.closest("td.hit"); td ? show(td) : (cur && hide()); });
-  document.addEventListener("focusin", e => { const td = e.target.closest("td.hit"); td ? show(td) : (cur && hide()); });
-  document.addEventListener("click", e => { const td = e.target.closest("td.hit"); if (td) show(td); else if (cur) hide(); });
+  document.addEventListener("mouseover", e => { const el = e.target.closest(SEL); el ? show(el) : (cur && hide()); });
+  document.addEventListener("focusin", e => { const el = e.target.closest(SEL); el ? show(el) : (cur && hide()); });
+  document.addEventListener("click", e => { const el = e.target.closest(SEL); if (el) show(el); else if (cur) hide(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape") hide(); });
   window.addEventListener("scroll", hide, true);
   window.addEventListener("resize", hide);
 })();
 
 /* ---------- Events ---------- */
-function loadExample(){ addWorkflow(parseCSV(EXAMPLE_CSV), "Example transcript.csv"); state.files[state.files.length-1].example = true; render(); }
-// The example shown on opening steps aside once you upload your own files
+function loadExample(){
+  EXAMPLES.forEach(([name, csv]) => { addWorkflow(parseCSV(csv), name).example = true; });
+  state.active = state.files[0].id;
+  render();
+}
+// The examples shown on opening step aside once you upload your own files
 function dropExample(){ state.files = state.files.filter(f => !f.example); }
 function removeFile(id){ state.files = state.files.filter(f => f.id !== id); if (state.active === id) state.active = null; render(); }
 
@@ -887,6 +1586,8 @@ document.addEventListener("click", e => {
   const tb = e.target.closest("[data-tab]"); if (tb){ state.active = tb.dataset.tab; render(); return; }
   const op = e.target.closest("[data-open]"); if (op){ state.active = op.dataset.open; render(); return; }
   const lv = e.target.closest("[data-level]"); if (lv){ state.levels[lv.dataset.key] = lv.dataset.level; renderResults(); return; }
+  const la = e.target.closest("[data-level-all]"); if (la){ const t = currentTab(); t.files.forEach(f => { if (viewsOf(f).includes(la.dataset.levelAll)) state.levels[levelKey(t, f)] = la.dataset.levelAll; }); renderResults(); return; }
+  const st = e.target.closest("[data-st]"); if (st){ const y = $("results").scrollTop; state.st[st.dataset.st] = st.dataset.v; renderResults(); $("results").scrollTop = y; return; }
   const dl = e.target.closest("[data-dl]"); if (dl){ const t = currentTab(); if (t) downloadOne(t, dl.dataset.dl); }
 });
 document.addEventListener("keydown", e => { const op = e.target.closest?.("[data-open]"); if (op && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); state.active = op.dataset.open; render(); } });
