@@ -184,12 +184,17 @@ table.st .dim{color:var(--muted)}
 .bar span:first-child{border-radius:4px 0 0 4px} .bar span:last-child{border-radius:0 4px 4px 0} .bar span:only-child{border-radius:4px}
 .bar span:hover{outline:2px solid var(--ink);outline-offset:1px}
 .heats{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;overflow-x:auto;max-width:100%}
-/* Graphics wider than the page keep their scrollbar showing (macOS otherwise hides it until you scroll) */
-.sheet-wrap::-webkit-scrollbar,.tw::-webkit-scrollbar,.heats::-webkit-scrollbar{-webkit-appearance:none;height:12px;width:12px}
-.sheet-wrap::-webkit-scrollbar-track,.tw::-webkit-scrollbar-track,.heats::-webkit-scrollbar-track{background:var(--bg);border-radius:6px}
-.sheet-wrap::-webkit-scrollbar-thumb,.tw::-webkit-scrollbar-thumb,.heats::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:6px;border:2px solid var(--bg)}
-.sheet-wrap::-webkit-scrollbar-thumb:hover,.tw::-webkit-scrollbar-thumb:hover,.heats::-webkit-scrollbar-thumb:hover{background:var(--muted)}
-@supports (-moz-appearance:none){.sheet-wrap,.tw,.heats{scrollbar-color:var(--line-strong) var(--bg)}}
+/* Every graphic gets its own scrollbar along the bottom. It sticks to the bottom of the screen while any
+   part of the graphic is showing, and stays visible even when the graphic fits (the browser's own is hidden). */
+.hscroll{min-width:0;max-width:100%}
+.hscroll > .sheet-wrap,.hscroll > .tw,.hscroll > .heats{scrollbar-width:none}
+.hscroll > .sheet-wrap::-webkit-scrollbar,.hscroll > .tw::-webkit-scrollbar,.hscroll > .heats::-webkit-scrollbar{display:none}
+.hbar{position:sticky;bottom:0;z-index:4;background:var(--panel);padding:6px 0 4px}
+.htrack{position:relative;height:12px;border-radius:6px;background:var(--bg);border:1px solid var(--line);cursor:pointer}
+.hthumb{position:absolute;top:1px;bottom:1px;left:0;border-radius:5px;background:var(--line-strong);cursor:grab;touch-action:none}
+.hthumb:hover,.hthumb.drag{background:var(--muted)}
+.hthumb.drag{cursor:grabbing}
+.hbar.fits .hthumb{opacity:.45;cursor:default}
 table.heat{border-collapse:separate;border-spacing:2px;font-size:11.5px;font-variant-numeric:tabular-nums}
 table.heat th{font:500 11px var(--sans);text-align:right;padding:0 6px 0 0;white-space:nowrap}
 table.heat thead th{text-align:center;padding:0 0 2px}
@@ -742,7 +747,7 @@ function renderResults(){
   if (!tab){
     el.innerHTML = `<p class="hint">Upload a coded transcript on the left to see its handoff map here.</p>`; return;
   }
-  if (tab.id === "stats"){ el.innerHTML = statsHTML(tab.files); return; }
+  if (tab.id === "stats"){ el.innerHTML = statsHTML(tab.files); addScrollbars(); return; }
   const files = tab.files;
   const cols = files.reduce((a,f) => a + f.columns.length, 0);
   let body;
@@ -779,6 +784,7 @@ function renderResults(){
     <div class="sheet-wrap">${body}</div>
     <div><h3 class="eyebrow" style="margin:0 0 8px">Legend</h3>${legendHTML(legendOf(files.map(f => view(f, levelOf(tab, f)))))}</div>
     <p class="hint">Hover over a square, or tap it on a touch screen, to see what it is, its time and the row it came from. A dot on a square's corner is the reasoning to move forward coded on it (two dots for two reasons). Use the switch to move between actions, action families, task types, task families and all levels side by side. Downloads include every level.</p>`;
+  addScrollbars();
 }
 
 function renderDownloadLabels(){
@@ -1680,6 +1686,47 @@ async function downloadZip(){
     const r = await saveFile("handoff-maps.zip", blob);
     setStatus(r === "saved" ? "Saved handoff-maps.zip." : "Skipped the zip file.", r === "saved" ? "ok" : "");
   } catch(e){ setStatus(explain(e), "bad"); }
+}
+
+/* ---------- Scrollbars ---------- */
+// Wraps every graphic with a scrollbar of its own along the bottom (see .hscroll in the styles)
+const scrollWatch = typeof ResizeObserver !== "undefined" ? new ResizeObserver(list => list.forEach(x => x.target._hbar && x.target._hbar())) : null;
+function addScrollbars(){
+  if (scrollWatch) scrollWatch.disconnect();
+  $("results").querySelectorAll(".sheet-wrap, .tw, .heats").forEach(el => {
+    if (el.parentElement.closest(".sheet-wrap, .tw, .heats")) return;  // only the outermost graphic
+    const wrap = document.createElement("div"); wrap.className = "hscroll";
+    el.replaceWith(wrap); wrap.append(el);
+    const bar = document.createElement("div"); bar.className = "hbar";
+    bar.innerHTML = `<div class="htrack" role="scrollbar" aria-orientation="horizontal" aria-label="Scroll sideways"><div class="hthumb"></div></div>`;
+    wrap.append(bar);
+    const track = bar.firstChild, thumb = track.firstChild;
+    const update = () => {
+      const tw = track.clientWidth, max = el.scrollWidth - el.clientWidth;
+      const w = max > 0 ? Math.max(30, tw * el.clientWidth / el.scrollWidth) : tw;
+      thumb.style.width = w + "px";
+      thumb.style.left = (max > 0 ? el.scrollLeft / max * (tw - w) : 0) + "px";
+      bar.classList.toggle("fits", max <= 0);
+      track.setAttribute("aria-valuenow", max > 0 ? Math.round(el.scrollLeft / max * 100) : 0);
+    };
+    el._hbar = update;
+    el.addEventListener("scroll", update, {passive: true});
+    const toX = x => { const tw = track.clientWidth, w = thumb.offsetWidth, max = el.scrollWidth - el.clientWidth; if (tw > w) el.scrollLeft = x / (tw - w) * max; };
+    track.addEventListener("pointerdown", e => {
+      if (e.target === thumb) return;
+      const r = track.getBoundingClientRect(); toX(e.clientX - r.left - thumb.offsetWidth / 2);
+    });
+    thumb.addEventListener("pointerdown", e => {
+      e.preventDefault(); thumb.setPointerCapture(e.pointerId); thumb.classList.add("drag");
+      const start = e.clientX - thumb.offsetLeft;
+      const move = ev => toX(ev.clientX - start);
+      const up = () => { thumb.classList.remove("drag"); thumb.removeEventListener("pointermove", move); thumb.removeEventListener("pointerup", up); };
+      thumb.addEventListener("pointermove", move); thumb.addEventListener("pointerup", up);
+    });
+    track._hbar = update;
+    if (scrollWatch){ scrollWatch.observe(el); scrollWatch.observe(track); }
+    update();
+  });
 }
 
 /* ---------- Hover tooltip ---------- */
