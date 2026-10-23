@@ -52,6 +52,7 @@ Each map has an **Actions / Action families / Task types / Task families / All l
 Once transcripts are loaded, a **Statistics** tab works through the question *How do people convince themselves that they can move forward (accept, continue or submit AI output)?*, comparing tight with loose sessions:
 
 - **Overview**: headline numbers and a timeline of every session, colored by any level, with each decision to move forward marked by its reasoning.
+- **Tally**: how many times each action, action family, task type, task family, handoff and reason was coded in each session, each workflow and overall (switch to show one level or all).
 - **1 · Quantity**: the mix of human tasks or actions (by count or time) in each workflow. χ² test with a permutation p-value, Cramér's V and adjusted residuals, plus a session-level Mann–Whitney U for each category.
 - **2 · Process**: transition grids (which task follows which), a χ² test of whether the paths differ, what came right before each decision, and Fisher's exact tests on whether people reviewed, checked against records, or re-prompted before moving on.
 - **3 · Decisions**: the reasoning given in each workflow (χ²), review time (AI output → decision) and deliberation time (previous decision → this one) compared with Mann–Whitney U and across reasonings with Kruskal–Wallis, what evidence each reasoning rested on, and a list of every decision.

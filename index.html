@@ -165,6 +165,8 @@ table.st td.l,table.st th.l{text-align:left}
 table.st td.wrap{white-space:normal;min-width:180px;max-width:320px}
 table.st th{font:500 10.5px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-bottom-color:var(--line-strong)}
 table.st tr.grp td{font-weight:600;padding-top:10px}
+table.st tr.grp td:first-child{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-top:16px}
+table.st tr.tot td{border-bottom-color:var(--line-strong)}
 table.st .sig{font-weight:600;color:var(--ink)}
 table.st .dim{color:var(--muted)}
 .nm{display:inline-flex;align-items:center;gap:6px}
@@ -212,8 +214,6 @@ table.heat caption{text-align:left;font-weight:600;font-size:12.5px;padding-bott
 .mark:hover{box-shadow:0 0 0 2px var(--ink)}
 .cond-key{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;margin-right:14px}
 .cond-key i{width:11px;height:11px;border-radius:50%;display:inline-block}
-.methods{color:var(--muted);font-size:12.5px;margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;max-width:95ch}
-.methods b{color:var(--ink);font-weight:600}
 
 @media (max-width: 820px){
   body{height:auto}
@@ -519,7 +519,7 @@ function buildWorkflow(rows, name){
 }
 
 /* ---------- State ---------- */
-const state = {files: [], active: null, levels: {}, st: {tl: "taskFamily", comp: "taskFamily", measure: "count", seq: "taskFamily", sim: "taskFamily", dist: "lev"}};
+const state = {files: [], active: null, levels: {}, st: {tally: "all", tl: "taskFamily", comp: "taskFamily", measure: "count", seq: "taskFamily", sim: "taskFamily", dist: "lev"}};
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const baseName = n => n.replace(/\.(csv|xlsx|xls|numbers)$/i, "");
@@ -1102,12 +1102,12 @@ function statsHTML(files){
     ${!both ? `<p class="caveat">Load at least one TIGHT and one LOOSE transcript to compare them. Until then the tests below are left out and only the descriptions are shown.</p>` : ""}
     ${overviewHTML(S, both)}
     ${timelineHTML(S)}
+    ${tallyHTML(S)}
     ${compositionHTML(S, both)}
     ${sequenceHTML(S, D, both)}
     ${decisionHTML(S, D, both)}
     ${processHTML(S, both)}
-    ${similarityHTML(S, both)}
-    ${methodsHTML()}`;
+    ${similarityHTML(S, both)}`;
 }
 
 function overviewHTML(S, both){
@@ -1150,6 +1150,37 @@ function timelineHTML(S){
     <div class="plot">${ticks.map(t => `<span class="gridl" style="left:calc(var(--labw) + 10px + (100% - var(--labw) - 10px) * ${t / span})"></span>`).join("")}${rows}
       <div class="axis">${ticks.map(t => `<span style="left:${t / span * 100}%">${t / 60} min</span>`).join("")}</div></div>
     ${reasons.length ? `<div class="legend">${reasons.map(r => `<span class="key-item"><span class="sw" style="background:${hexOf(r)};transform:rotate(45deg) scale(.8)"></span>${esc(r)}</span>`).join("")}</div>` : ""}
+  </section>`;
+}
+
+/* Section: tally of every code in every session */
+// How many times each code was coded: every action row, every task, every handoff and every reason given (human and AI)
+const TALLY = [
+  ["action", "Actions", f => f.entries.flatMap(e => e.actions.filter(a => a.action).map(a => a.action.name))],
+  ["actionFamily", "Action families", f => f.entries.flatMap(e => e.actions.filter(a => a.action).map(a => actName(a, "actionFamily")))],
+  ["task", "Task types", f => f.entries.filter(e => e.kind !== "handoff" && !e.orphan).map(e => e.task.name)],
+  ["taskFamily", "Task families", f => f.entries.filter(e => e.kind !== "handoff" && !e.orphan).map(e => famName(e.taskFam))],
+  ["handoff", "Handoffs", f => f.entries.filter(e => e.kind === "handoff").map(e => e.hand.name)],
+  ["reason", "Reasons", f => f.entries.flatMap(e => e.actions.flatMap(a => a.reasons.map(r => r.name)))],
+];
+ORDER.handoff = HANDOFFS.map(([n]) => n);
+function tallyHTML(S){
+  const pick = state.st.tally, levels = TALLY.filter(([lv]) => pick === "all" || lv === pick);
+  const conds = COND.filter(c => S.some(s => s.cond === c));
+  const rows = levels.flatMap(([lv, label, get]) => {
+    const per = S.map(s => get(s.f)), cats = catsPresent(lv, per.flat());
+    const count = (list, c) => list.filter(x => x === c).length;
+    const line = c => { const v = per.map(l => count(l, c)), byC = conds.map(cd => sum(v.filter((_, i) => S[i].cond === cd)));
+      return [{h: nmHTML(c, hexOf(c)), t: c}, ...v.map(x => ({h: x ? `${x}` : `<span class="dim">0</span>`, t: x})), ...byC.map(x => ({h: `<b>${x}</b>`, t: x})), {h: `<b>${sum(v)}</b>`, t: sum(v)}]; };
+    const total = [{h: `<b>${label}: total</b>`, t: `${label}: total`}, ...per.map(l => ({h: `<b>${l.length}</b>`, t: l.length})),
+      ...conds.map(cd => ({h: `<b>${sum(per.filter((_, i) => S[i].cond === cd).map(l => l.length))}</b>`, t: sum(per.filter((_, i) => S[i].cond === cd).map(l => l.length))})), {h: `<b>${per.flat().length}</b>`, t: per.flat().length}];
+    return cats.length ? [{cells: [{h: esc(label), t: label}, ...S.map(() => ""), ...conds.map(() => ""), ""], cls: "grp"}, ...cats.map(line), {cells: total, cls: "tot"}] : [];
+  });
+  return `<section class="st-sec">
+    <div class="st-head"><div><span class="num">Tally</span><h3>How often each code occurs</h3></div>
+      <div class="st-ctl">${stCtl("tally", [["all", "All"], ...TALLY.map(([lv, label]) => [lv, label])])}</div></div>
+    <p class="st-q">Counts for each session, then each workflow and everything together. Every action row, every task (human and AI), every handoff and every reason given counts once.</p>
+    ${tbl("Tally of every code", ["Code", ...S.map(s => `${s.f.name} (${s.cond})`), ...conds.map(c => `All ${c}`), "All sessions"], rows, "tally")}
   </section>`;
 }
 
@@ -1373,21 +1404,6 @@ function similarityHTML(S, both){
     <p class="st-q">How alike are the sessions? <b>Profile similarity</b> compares each session’s mix of human ${isTaskLevel(lv) ? "tasks" : "actions"} (cosine of their count vectors, 1 = the same mix). <b>Sequence distance</b> compares the order of everything that happened, human and AI, which a mix can’t show: ${om ? "optimal matching, where swapping two codes costs less the more often they follow each other" : "edit (Levenshtein) distance, the fewest insertions, deletions and swaps"}, divided by the longer session (0 = same order, 1 = nothing shared). Sessions are numbered tight first; darker cells are more alike, and a line separates the workflows.</p>
     <div class="heats">${cosGrid}${seqGrid}</div>
     ${tests}
-  </section>`;
-}
-
-function methodsHTML(){
-  return `<section class="st-sec">
-    <div class="st-head"><div><span class="num">Notes</span><h3>How these are worked out</h3></div></div>
-    <ul class="methods">
-      <li><b>Times</b> are minutes.seconds (24.05 is 24:05; 25.1 is 25:10). Each row lasts until the next row with a time. A time earlier than the row before it is flagged on the left and left out.</li>
-      <li><b>Decision to move forward</b>: an AUTHORIZE task, or any task with a Reasoning to Move Forward. <b>Review</b>: human tasks after the AI’s last turn (or the previous decision, if later). <b>Review time</b>: from the AI’s last output (its AI_OUTPUT row) to the decision. AI_WORKING and AI_OUTPUT rows in one AI column count as one AI turn. <b>Deliberation</b>: from the previous decision (or session start) to this one.</li>
-      <li><b>χ² tests</b> (task mix, paths, reasonings) give a permutation p-value from 4,000 shuffles of the tight/loose labels, which holds up with small counts; the usual χ² approximation is shown where it differs. <b>Cramér’s V</b>: about .1 small, .3 medium, .5 large. <b>Adjusted residuals</b> beyond ±1.96 mark the categories driving a difference.</li>
-      <li><b>Mann–Whitney U</b> compares two groups without assuming normal data; p is exact when there are few enough values. <b>Rank-biserial r</b> runs from −1 to 1; positive means tight tends higher. <b>Kruskal–Wallis H</b> compares several groups (here, reasonings); ε² is its effect size.</li>
-      <li><b>Fisher’s exact test</b> compares two proportions with small counts. An odds ratio above 1 means the behavior is more likely in tight sessions.</li>
-      <li><b>Profile similarity</b> is the cosine of two sessions’ count vectors. <b>Sequence distance</b> is the edit (Levenshtein) distance, or optimal matching with indel cost 1 and substitution costs 2 − p(a→b) − p(b→a) from the pooled transition rates, divided by the longer sequence. <b>Within vs. between</b>: the mean distance between sessions of different workflows minus the mean within the same workflow, with a one-sided p from relabeling the sessions every possible way (keeping group sizes); with 3 and 3 sessions there are only 10 different splits, so the smallest p is .10; with 4 and 4 it is about .03.</li>
-      <li><b>Units</b>: tests on tasks, transitions or decisions treat each as independent, though several come from one person; the session-by-session table counts each person once and is the safer basis for claims.</li>
-    </ul>
   </section>`;
 }
 
