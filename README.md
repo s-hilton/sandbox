@@ -57,7 +57,7 @@ Once transcripts are loaded, a **Statistics** tab works through the question *Ho
 - **3 · Decisions**: the reasoning given in each workflow (χ²), review time (AI output → decision) and deliberation time (previous decision → this one) compared with Mann–Whitney U and across reasonings with Kruskal–Wallis, what evidence each reasoning rested on, and a list of every decision.
 - **4 · Sessions**: one number per session (length, AI turns, prompts, decisions, GATHER/JUDGE/STEER tasks, task variety, median review, …) with exact Mann–Whitney tests, so each person counts once.
 
-The tab says how much weight the tests can bear with the number of sessions loaded. **Download CSVs** saves every table (`statistics-tables.csv`) and every coded row with its times, families and decision links (`coded-events.csv`) for R, SPSS or Excel.
+**Download CSVs** saves every table (`statistics-tables.csv`) and every coded row with its times, families and decision links (`coded-events.csv`) for R, SPSS or Excel.
 
 ## How columns are built
 

@@ -1017,7 +1017,6 @@ function statsHTML(files){
   const both = COND.every(c => S.some(s => s.cond === c));
   const nC = c => S.filter(s => s.cond === c).length;
   const D = S.flatMap(s => s.decisions);
-  const smallN = COND.some(c => nC(c) < 5);
   return `
     <div class="res-head">
       <div>
@@ -1027,8 +1026,7 @@ function statsHTML(files){
       </div>
       <div class="row"><button class="btn small" type="button" data-dl="csv">Download CSVs</button></div>
     </div>
-    ${!both ? `<p class="caveat">Load at least one TIGHT and one LOOSE transcript to compare them. Until then the tests below are left out and only the descriptions are shown.</p>` :
-      smallN ? `<p class="caveat">With ${nC("tight")} tight and ${nC("loose")} loose sessions, read the tests as a description of these transcripts, not as evidence about people in general. Tests that count tasks, transitions or decisions treat each one as independent even though they come from the same person, which makes p-values look stronger than they are. The session-level tests avoid that, but need about 5 sessions per workflow before they can reach p < .05.</p>` : ""}
+    ${!both ? `<p class="caveat">Load at least one TIGHT and one LOOSE transcript to compare them. Until then the tests below are left out and only the descriptions are shown.</p>` : ""}
     ${overviewHTML(S, both)}
     ${timelineHTML(S)}
     ${compositionHTML(S, both)}
