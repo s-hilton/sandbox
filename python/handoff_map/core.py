@@ -237,6 +237,8 @@ def parse_xlsx(data: bytes) -> list[list[str]]:
 
 
 def read_rows(filename: str, data: bytes) -> list[list[str]]:
+    if re.search(r"\.numbers$", filename, re.I):
+        raise ValueError("Numbers files only open in the HTML dashboard (index.html); export the sheet as CSV or Excel to use it here")
     if re.search(r"\.xlsx?$", filename, re.I):
         rows = parse_xlsx(data)
     else:

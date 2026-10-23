@@ -67,7 +67,7 @@ Consecutive rows of the same kind become one column: human tasks → `Human #n`,
 
 Each map tab exports as `<name>-visual.csv` (one hex color code per square, phase START/END markers above the headers, legend below) and `<name>-visual.png` for task types, plus `-task-families`, `-actions`, `-action-families` and `-all-levels` versions. In the all-levels CSV a tall square repeats its color on each row it covers. **Download all files** and **Download as .zip** also include the two statistics CSVs.
 
-Open `index.html` directly in a browser to use it locally.
+Open `index.html` directly in a browser to use it locally. In GitHub Codespaces it starts by itself on port 8501 (open the **Ports** tab and click the globe next to 8501 if it doesn't open); to restart it, run `python -m http.server 8501`.
 
 ## Python version
 
