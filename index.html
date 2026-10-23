@@ -184,6 +184,12 @@ table.st .dim{color:var(--muted)}
 .bar span:first-child{border-radius:4px 0 0 4px} .bar span:last-child{border-radius:0 4px 4px 0} .bar span:only-child{border-radius:4px}
 .bar span:hover{outline:2px solid var(--ink);outline-offset:1px}
 .heats{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;overflow-x:auto;max-width:100%}
+/* Graphics wider than the page keep their scrollbar showing (macOS otherwise hides it until you scroll) */
+.sheet-wrap::-webkit-scrollbar,.tw::-webkit-scrollbar,.heats::-webkit-scrollbar{-webkit-appearance:none;height:12px;width:12px}
+.sheet-wrap::-webkit-scrollbar-track,.tw::-webkit-scrollbar-track,.heats::-webkit-scrollbar-track{background:var(--bg);border-radius:6px}
+.sheet-wrap::-webkit-scrollbar-thumb,.tw::-webkit-scrollbar-thumb,.heats::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:6px;border:2px solid var(--bg)}
+.sheet-wrap::-webkit-scrollbar-thumb:hover,.tw::-webkit-scrollbar-thumb:hover,.heats::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+@supports (-moz-appearance:none){.sheet-wrap,.tw,.heats{scrollbar-color:var(--line-strong) var(--bg)}}
 table.heat{border-collapse:separate;border-spacing:2px;font-size:11.5px;font-variant-numeric:tabular-nums}
 table.heat th{font:500 11px var(--sans);text-align:right;padding:0 6px 0 0;white-space:nowrap}
 table.heat thead th{text-align:center;padding:0 0 2px}
