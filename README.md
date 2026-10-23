@@ -53,11 +53,13 @@ Once transcripts are loaded, a **Statistics** tab works through the question *Ho
 
 - **Overview**: headline numbers and a timeline of every session, colored by any level, with each decision to move forward marked by its reasoning.
 - **Tally**: how many times each action, action family, task type, task family, handoff and reason was coded in each session, each workflow and overall (switch to show one level or all).
-- **1 · Quantity**: the mix of human tasks or actions (by count or time) in each workflow. χ² test with a permutation p-value, Cramér's V and adjusted residuals, plus a session-level Mann–Whitney U for each category.
-- **2 · Process**: transition grids (which task follows which), a χ² test of whether the paths differ, what came right before each decision, and Fisher's exact tests on whether people reviewed, checked against records, or re-prompted before moving on.
-- **3 · Decisions**: the reasoning given in each workflow (χ²), review time (AI output → decision) and deliberation time (previous decision → this one) compared with Mann–Whitney U and across reasonings with Kruskal–Wallis, what evidence each reasoning rested on, and a list of every decision.
-- **4 · Sessions**: one number per session (length, AI turns, prompts, decisions, GATHER/JUDGE/STEER tasks, task variety, median review, …) with exact Mann–Whitney tests, so each person counts once.
-- **5 · Similarity**: how alike the sessions are. Profile similarity is the cosine between each session's code proportions (a sessions × sessions heatmap); sequence distance is edit (Levenshtein) or optimal-matching distance between the sessions' code sequences, which captures order. A permutation test asks whether sessions are closer to others in their own workflow than to the other workflow (with 3 and 3 sessions the smallest possible p is .10).
+- **1 · Quantity**: the mix of human tasks or actions (by count or time) in each workflow, with each workflow's share, each session's share (median and range) and the tight − loose difference.
+- **2 · Process**: transition grids (which task follows which), what came right before each decision, and how often people reviewed, checked against records or re-prompted before moving on.
+- **3 · Decisions**: the reasoning given in each workflow, review time (AI output → decision) and deliberation time (previous decision → this one), what evidence each reasoning rested on, and a list of every decision.
+- **4 · Sessions**: one number per session (length, AI turns, prompts, decisions, GATHER/JUDGE/STEER tasks, task variety, median review, …), as medians and ranges for each workflow.
+- **5 · Similarity**: how alike the sessions are. Profile similarity is the cosine between each session's code proportions (a sessions × sessions heatmap); sequence distance is edit (Levenshtein) or optimal-matching distance between the sessions' code sequences, which captures order. The mean distance within each workflow is compared with the mean between workflows.
+
+The tab describes the sessions; it runs no significance tests, since the samples are small.
 
 **Download CSVs** saves every table (`statistics-tables.csv`) and every coded row with its times, families and decision links (`coded-events.csv`) for R, SPSS or Excel.
 
