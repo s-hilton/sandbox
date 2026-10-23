@@ -810,129 +810,9 @@ function renderKey(){
 }
 
 /* ---------- Statistics: tests ---------- */
-// Seeded random numbers, so permutation p-values don't change between renders
-const rng = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-function shuffleInPlace(a, r){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(r() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 const sum = a => a.reduce((s, v) => s + v, 0);
 const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
-function gammaln(x){
-  const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
-  let y = x, tmp = x + 5.5; tmp -= (x + .5) * Math.log(tmp);
-  let ser = 1.000000000190015; for (const v of c) ser += v / ++y;
-  return -tmp + Math.log(2.5066282746310005 * ser / x);
-}
-// Upper regularized gamma Q(a, x): the chi-square tail
-function gammaQ(a, x){
-  if (x <= 0) return 1;
-  const lead = -x + a * Math.log(x) - gammaln(a);
-  if (x < a + 1){
-    let s = 1 / a, d = s, ap = a;
-    for (let n = 0; n < 500; n++){ ap++; d *= x / ap; s += d; if (Math.abs(d) < Math.abs(s) * 1e-14) break; }
-    return Math.max(0, 1 - s * Math.exp(lead));
-  }
-  let b = x + 1 - a, c = 1e300, d = 1 / b, h = d;
-  for (let i = 1; i < 500; i++){
-    const an = -i * (i - a); b += 2;
-    d = an * d + b; if (Math.abs(d) < 1e-300) d = 1e-300;
-    c = b + an / c; if (Math.abs(c) < 1e-300) c = 1e-300;
-    d = 1 / d; const del = d * c; h *= del; if (Math.abs(del - 1) < 1e-14) break;
-  }
-  return Math.exp(lead) * h;
-}
-const chiP = (x, df) => df > 0 ? gammaQ(df / 2, x / 2) : 1;
-function erf(x){
-  const t = 1 / (1 + 0.3275911 * Math.abs(x));
-  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
-  return x >= 0 ? y : -y;
-}
-const normP2 = z => 1 - erf(Math.abs(z) / Math.SQRT2);  // two-sided
-
-// Chi-square on a contingency table (rows and columns with no counts are dropped)
-function chiSq(t){
-  t = t.filter(r => sum(r) > 0);
-  const keep = t.length ? t[0].map((_, j) => t.some(r => r[j] > 0)) : [];
-  t = t.map(r => r.filter((_, j) => keep[j]));
-  const R = t.map(sum), Cs = t.length ? t[0].map((_, j) => sum(t.map(r => r[j]))) : [], N = sum(R);
-  let chi2 = 0;
-  const adj = t.map((r, i) => r.map((o, j) => {
-    const e = R[i] * Cs[j] / N; chi2 += (o - e) ** 2 / e;
-    const v = e * (1 - R[i] / N) * (1 - Cs[j] / N); return v > 0 ? (o - e) / Math.sqrt(v) : 0;
-  }));
-  const df = Math.max(0, (R.length - 1) * (Cs.length - 1)), m = Math.min(R.length, Cs.length) - 1;
-  return {chi2, df, N, V: m > 0 && N ? Math.sqrt(chi2 / (N * m)) : 0, adj, keep};
-}
-// Groups × categories from one row per unit; p from 4,000 shuffles of the group labels (exact-ish for small counts)
 const memo = new Map();
-function chiTest(groups, cats, G, Cs){
-  const key = "chi" + JSON.stringify([groups, cats]);
-  if (memo.has(key)) return memo.get(key);
-  const gi = groups.map(g => G.indexOf(g)), ci = cats.map(c => Cs.indexOf(c));
-  const table = idx => { const t = G.map(() => Cs.map(() => 0)); idx.forEach((g, u) => t[g][ci[u]]++); return t; };
-  const obs = chiSq(table(gi));
-  let res = {...obs, table: table(gi), p: null, pAsym: null};
-  if (obs.df > 0){
-    const r = rng(7), N = 4000, sh = gi.slice(); let hit = 0;
-    for (let i = 0; i < N; i++){ shuffleInPlace(sh, r); if (chiSq(table(sh)).chi2 >= obs.chi2 - 1e-9) hit++; }
-    res = {...res, p: (hit + 1) / (N + 1), pAsym: chiP(obs.chi2, obs.df)};
-  }
-  memo.set(key, res);
-  return res;
-}
-function ranksOf(vals){
-  const idx = vals.map((_, i) => i).sort((a, b) => vals[a] - vals[b]), r = Array(vals.length); let ties = 0;
-  for (let i = 0; i < idx.length;){
-    let j = i; while (j + 1 < idx.length && vals[idx[j + 1]] === vals[idx[i]]) j++;
-    for (let q = i; q <= j; q++) r[idx[q]] = (i + j) / 2 + 1;
-    const t = j - i + 1; ties += t * t * t - t; i = j + 1;
-  }
-  return {r, ties};
-}
-function choose(n, kk){ let c = 1; for (let i = 1; i <= kk; i++) c = c * (n - kk + i) / i; return Math.round(c); }
-// Mann–Whitney U: exact (every way of splitting the values) when that is ≤ 200,000 splits, else normal approximation
-function mannWhitney(x, y){
-  const n1 = x.length, n2 = y.length;
-  if (!n1 || !n2) return null;
-  const key = "mw" + JSON.stringify([x, y]);
-  if (memo.has(key)) return memo.get(key);
-  const n = n1 + n2, {r, ties} = ranksOf([...x, ...y]);
-  const R1 = sum(r.slice(0, n1)), U1 = R1 - n1 * (n1 + 1) / 2, mid = n1 * (n + 1) / 2;
-  const total = choose(n, n1); let p, exact = false;
-  if (total <= 200000){
-    exact = true; const obsD = Math.abs(R1 - mid) - 1e-9; let hit = 0;
-    const rec = (start, left, s) => { if (!left){ if (Math.abs(s - mid) >= obsD) hit++; return; } for (let i = start; i <= n - left; i++) rec(i + 1, left - 1, s + r[i]); };
-    rec(0, n1, 0); p = hit / total;
-  } else {
-    const sd = Math.sqrt(n1 * n2 / 12 * ((n + 1) - ties / (n * (n - 1))));
-    p = sd ? normP2(Math.max(0, Math.abs(U1 - n1 * n2 / 2) - .5) / sd) : 1;
-  }
-  const res = {U: Math.min(U1, n1 * n2 - U1), p: Math.min(1, p), exact, rb: 2 * U1 / (n1 * n2) - 1, n1, n2,
-               minP: exact ? Math.min(1, 2 / total) : null, m1: median(x), m2: median(y)};
-  memo.set(key, res);
-  return res;
-}
-// Kruskal–Wallis H across several groups; p from 4,000 shuffles (and the chi-square approximation)
-function kruskal(groups){
-  groups = groups.filter(g => g.length);
-  const kk = groups.length, all = groups.flat(), N = all.length;
-  if (kk < 2 || N <= kk) return null;
-  const key = "kw" + JSON.stringify(groups);
-  if (memo.has(key)) return memo.get(key);
-  const {r, ties} = ranksOf(all), sizes = groups.map(g => g.length), corr = 1 - ties / (N ** 3 - N);
-  const H = rr => { let off = 0, S = 0; sizes.forEach(s => { const R = sum(rr.slice(off, off + s)); S += R * R / s; off += s; }); const h = 12 / (N * (N + 1)) * S - 3 * (N + 1); return corr > 0 ? h / corr : 0; };
-  const obs = H(r), rand = rng(11), sh = r.slice(); let hit = 0;
-  for (let i = 0; i < 4000; i++){ shuffleInPlace(sh, rand); if (H(sh) >= obs - 1e-9) hit++; }
-  const res = {H: obs, df: kk - 1, p: (hit + 1) / 4001, pAsym: chiP(obs, kk - 1), eps2: obs / (N - 1), N, k: kk};
-  memo.set(key, res);
-  return res;
-}
-// Fisher's exact test on a 2×2 table [[a, b], [c, d]], two-sided
-function fisher(a, b, c, d){
-  const r1 = a + b, r2 = c + d, c1 = a + c, n = r1 + r2, lf = x => gammaln(x + 1);
-  const P = x => Math.exp(lf(r1) + lf(r2) + lf(c1) + lf(n - c1) - lf(n) - lf(x) - lf(r1 - x) - lf(c1 - x) - lf(r2 - c1 + x));
-  const lo = Math.max(0, c1 - r2), hi = Math.min(r1, c1), p0 = P(a); let p = 0;
-  for (let x = lo; x <= hi; x++){ const q = P(x); if (q <= p0 * (1 + 1e-7)) p += q; }
-  return {p: Math.min(1, p), or: ((a + .5) * (d + .5)) / ((b + .5) * (c + .5))};
-}
 const entropy = names => { const m = new Map(); names.forEach(n => m.set(n, (m.get(n) || 0) + 1)); return -sum([...m.values()].map(c => c / names.length * Math.log2(c / names.length))); };
 
 // Cosine similarity of two count vectors (1 = the same mix, 0 = nothing in common)
@@ -960,39 +840,19 @@ function trateCosts(seqs){
   const p = (a, b) => tot.get(a) ? (out.get(a + "\u0000" + b) || 0) / tot.get(a) : 0;
   return (a, b) => 2 - p(a, b) - p(b, a);
 }
-// Are sessions in the same workflow closer to each other than to the other workflow?
-// Statistic: mean between-workflow distance − mean within-workflow distance, tested by relabeling sessions
-// (every relabeling when there are ≤ 50,000 of them, else 5,000 random ones)
+// Are sessions in the same workflow closer to each other than to the other workflow? Mean distances within and between.
 function withinBetween(D, labels){
-  const n = labels.length;
-  const stat = lab => { let w = 0, nw = 0, b = 0, nb = 0;
-    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++){ if (D[i][j] == null) continue; if (lab[i] === lab[j]){ w += D[i][j]; nw++; } else { b += D[i][j]; nb++; } }
-    return nw && nb ? {within: w / nw, between: b / nb, diff: b / nb - w / nw} : null; };
-  const obs = stat(labels);
-  if (!obs) return null;
+  const n = labels.length; let w = 0, nw = 0, b = 0, nb = 0;
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++){ if (D[i][j] == null) continue; if (labels[i] === labels[j]){ w += D[i][j]; nw++; } else { b += D[i][j]; nb++; } }
+  if (!nw || !nb) return null;
   const groupWithin = g => { const ix = labels.map((l, i) => l === g ? i : -1).filter(i => i >= 0), v = [];
     ix.forEach((i, a) => ix.slice(a + 1).forEach(j => { if (D[i][j] != null) v.push(D[i][j]); })); return v.length ? sum(v) / v.length : null; };
-  const g0 = labels[0], n1 = labels.filter(l => l === g0).length, other = labels.find(l => l !== g0), total = choose(n, n1);
-  let hit = 0, count = 0;
-  const test = lab => { const st = stat(lab); if (!st) return; count++; if (st.diff >= obs.diff - 1e-12) hit++; };
-  if (total <= 50000){
-    const lab = Array(n).fill(other);
-    const rec = (start, left) => { if (!left){ test(lab); return; } for (let i = start; i <= n - left; i++){ lab[i] = g0; rec(i + 1, left - 1); lab[i] = other; } };
-    rec(0, n1);
-  } else {
-    const r = rng(13), sh = labels.slice();
-    for (let i = 0; i < 5000; i++) test(shuffleInPlace(sh, r));
-    hit++; count++;  // count the observed labeling
-  }
-  // With equal groups, swapping the two labels gives the same split, so each split is counted twice
-  const minP = total <= 50000 ? (n1 * 2 === n ? 2 : 1) / total : 1 / count;
-  return {...obs, p: count ? hit / count : null, perms: count, exact: total <= 50000, minP, byGroup: Object.fromEntries([...new Set(labels)].map(g => [g, groupWithin(g)]))};
+  return {within: w / nw, between: b / nb, diff: b / nb - w / nw, byGroup: Object.fromEntries([...new Set(labels)].map(g => [g, groupWithin(g)]))};
 }
 
-const fmtP = p => p == null ? "–" : p < .001 ? "p < .001" : `p = ${p.toFixed(3).replace(/^0/, "")}`;
 const fmtN = (v, d = 2) => v == null || !isFinite(v) ? "–" : (+v).toFixed(d);
 const pct = (a, b) => b ? `${Math.round(a / b * 100)}%` : "–";
-const sizeWord = (v, cut = [.1, .3, .5]) => v == null ? "" : Math.abs(v) < cut[0] ? "negligible" : Math.abs(v) < cut[1] ? "small" : Math.abs(v) < cut[2] ? "medium" : "large";
+const ppDiff = (a, b) => { if (a == null || b == null) return "–"; const d = Math.round((a - b) * 100); return `${d > 0 ? "+" : d < 0 ? "−" : ""}${Math.abs(d)} pts`; };
 
 /* ---------- Statistics: measures ---------- */
 const humanTasks = f => f.entries.filter(e => e.kind === "human" && !e.orphan);
@@ -1111,7 +971,7 @@ function statsHTML(files){
       </div>
       <div class="row"><button class="btn small" type="button" data-dl="csv">Download CSVs</button></div>
     </div>
-    ${!both ? `<p class="caveat">Load at least one TIGHT and one LOOSE transcript to compare them. Until then the tests below are left out and only the descriptions are shown.</p>` : ""}
+    ${!both ? `<p class="caveat">Load at least one TIGHT and one LOOSE transcript to compare them. Until then only each workflow’s own numbers are shown.</p>` : ""}
     ${overviewHTML(S, both)}
     ${timelineHTML(S)}
     ${tallyHTML(S)}
@@ -1213,28 +1073,22 @@ function compositionHTML(S, both){
 
   let tests = "";
   if (both){
-    const flat = U.flatMap(x => x.u.map(u => ({g: x.s.cond, c: u.name})));
-    const ct = chiTest(flat.map(x => x.g), flat.map(x => x.c), COND, cats);
-    const tots = COND.map(c => sum(ct.table[COND.indexOf(c)]));
-    const keptCats = cats.filter((_, j) => ct.keep[j]);
-    const rows = cats.map((c, j) => {
-      const kj = keptCats.indexOf(c), z = kj >= 0 && ct.adj[0] ? ct.adj[0][kj] : null;
-      return [{h: nmHTML(c, hexOf(c)), t: c}, ...COND.map((g, gi) => `${ct.table[gi][j]} (${pct(ct.table[gi][j], tots[gi])})`),
-        {h: z == null ? "–" : `${z > 0 ? "+" : ""}${fmtN(z)}${Math.abs(z) >= 1.96 ? (z > 0 ? " more in tight" : " more in loose") : ""}`, t: fmtN(z), c: z != null && Math.abs(z) >= 1.96 ? "sig" : "dim"}];
-    });
-    const sig = ct.p != null && ct.p < .05;
-    tests += `<p class="result ${sig ? "" : "weak"}">${ct.df ? `${sig ? "The mix differs" : "No clear difference in the mix"} between tight and loose sessions: χ²(${ct.df}) = ${fmtN(ct.chi2)}, ${fmtP(ct.p)} (permutation; χ² approximation ${fmtP(ct.pAsym)}), Cramér’s V = ${fmtN(ct.V)} (${sizeWord(ct.V)}). Counts ${lv === "task" || lv === "taskFamily" ? "tasks" : "actions"}, N = ${ct.N}.` : "Not enough variety to test."}</p>`;
-    tests += `<div class="st-sub">Counts by workflow</div>` + tbl(`Task mix: ${lvName(lv)} by workflow (counts)`, [ONE[lv], "Tight n (%)", "Loose n (%)", "Adjusted residual z"], rows);
+    const tot = COND.map(g => sum(tally(U.filter(x => x.s.cond === g).flatMap(x => x.u))));
+    const tc = COND.map(g => tally(U.filter(x => x.s.cond === g).flatMap(x => x.u)));
+    const rows = cats.map((c, j) => [{h: nmHTML(c, hexOf(c)), t: c}, ...COND.map((g, gi) => `${fmtV(tc[gi][j])} (${pct(tc[gi][j], tot[gi])})`),
+      ppDiff(tot[0] ? tc[0][j] / tot[0] : null, tot[1] ? tc[1][j] / tot[1] : null)]);
+    tests += `<div class="st-sub">${byTime ? "Time" : "Counts"} by workflow</div>` + tbl(`Task mix: ${lvName(lv)} by workflow (${byTime ? "time" : "counts"})`, [ONE[lv], "Tight (%)", "Loose (%)", "Tight − loose"], rows);
     // Session level: each session's share of each category
-    const shares = cats.map(c => COND.map(g => U.filter(x => x.s.cond === g).map(x => { const t = tally(x.u), tot = sum(t); return tot ? t[cats.indexOf(c)] / tot : 0; })));
-    tests += `<div class="st-sub">Each session’s share (${byTime ? "of time" : "of the count"}), compared across sessions</div>` + tbl(`Task mix: ${lvName(lv)} share per session (${byTime ? "time" : "count"})`, [ONE[lv], "Tight median", "Loose median", "Mann–Whitney U", "p (exact)", "Rank-biserial r"],
-      cats.map((c, i) => { const mw = mannWhitney(shares[i][0], shares[i][1]);
-        return [{h: nmHTML(c, hexOf(c)), t: c}, pct(mw.m1, 1), pct(mw.m2, 1), fmtN(mw.U, 1), {h: fmtP(mw.p).replace("p = ", ""), t: fmtN(mw.p, 3), c: mw.p < .05 ? "sig" : ""}, fmtN(mw.rb)]; }));
+    const shares = cats.map(c => COND.map(g => U.filter(x => x.s.cond === g).map(x => { const t = tally(x.u), tt = sum(t); return tt ? t[cats.indexOf(c)] / tt : 0; })));
+    const rng = xs => xs.length > 1 && Math.min(...xs) !== Math.max(...xs) ? ` (${pct(Math.min(...xs), 1)}–${pct(Math.max(...xs), 1)})` : "";
+    tests += `<div class="st-sub">Each session’s share (${byTime ? "of time" : "of the count"})</div>` + tbl(`Task mix: ${lvName(lv)} share per session (${byTime ? "time" : "count"})`, [ONE[lv], "Tight median (range)", "Loose median (range)", "Tight − loose"],
+      cats.map((c, i) => { const m = shares[i].map(median);
+        return [{h: nmHTML(c, hexOf(c)), t: c}, `${pct(m[0], 1)}${rng(shares[i][0])}`, `${pct(m[1], 1)}${rng(shares[i][1])}`, ppDiff(m[0], m[1])]; }));
   }
   return `<section class="st-sec">
     <div class="st-head"><div><span class="num">1 · Quantity</span><h3>What people did on their side of the workflow</h3></div>
       <div class="st-ctl">${stCtl("comp", LEVEL_OPTS)}${stCtl("measure", [["count", "Count"], ["time", "Time"]])}</div></div>
-    <p class="st-q">Do tight and loose sessions differ in how much of each ${ONE[lv].toLowerCase()} people did? Human ${lv.startsWith("task") ? "tasks" : "actions"} only (AI work is in sections 2 and 4). ${byTime ? "Bars show time spent; the χ² test always uses counts." : ""}</p>
+    <p class="st-q">Do tight and loose sessions differ in how much of each ${ONE[lv].toLowerCase()} people did? Human ${lv.startsWith("task") ? "tasks" : "actions"} only (AI work is in sections 2 and 4). ${byTime ? "Bars show time spent." : ""}</p>
     ${legendHTML(cats.map(n => ({name: n, hex: hexOf(n), known: true})))}
     <div class="bars">${bars}</div>
     ${tests}
@@ -1256,12 +1110,6 @@ function sequenceHTML(S, D, both){
         return `<td ${tipAttrs(`${a} → ${b}`, "", [`${n} of ${tot} transitions out of ${a} (${pct(n, tot)})`, condName(c)])} style="${n ? `background:color-mix(in srgb, var(--accent) ${Math.round(15 + share * 85)}%, var(--sheet));color:${share > .45 ? "var(--accent-ink)" : "var(--ink)"}` : ""}">${n || ""}</td>`; }).join("")}</tr>`; }).join("")
     }</tbody></table>`;
   };
-  let tests = "";
-  if (both){
-    const ct = chiTest(pairs.map(p => p.g), pairs.map(p => `${p.from} → ${p.to}`), COND, [...new Set(pairs.map(p => `${p.from} → ${p.to}`))]);
-    const sig = ct.p != null && ct.p < .05;
-    tests += `<p class="result ${sig ? "" : "weak"}">${ct.df ? `${sig ? "The paths differ" : "No clear difference in the paths"} between tight and loose sessions: χ²(${ct.df}) = ${fmtN(ct.chi2)}, ${fmtP(ct.p)} (permutation), Cramér’s V = ${fmtN(ct.V)} (${sizeWord(ct.V)}), over ${ct.N} transitions.` : "Not enough variety to test."}</p>`;
-  }
   // What came right before each decision to move forward
   const leads = catsPresent(lv, D.filter(d => d.lead).map(d => nameAt(d.lead, lv)));
   const leadRows = leads.map(n => [{h: nmHTML(n, hexOf(n)), t: n}, ...COND.map(c => { const dc = D.filter(d => d.cond === c), x = dc.filter(d => d.lead && nameAt(d.lead, lv) === n).length; return `${x} (${pct(x, dc.length)})`; })]);
@@ -1277,18 +1125,16 @@ function sequenceHTML(S, D, both){
   const flagRows = flags.map(([label, fn]) => {
     const a = D.filter(d => d.cond === "tight" && fn(d)).length, nt = D.filter(d => d.cond === "tight").length;
     const c = D.filter(d => d.cond === "loose" && fn(d)).length, nl = D.filter(d => d.cond === "loose").length;
-    const fx = both && nt && nl ? fisher(a, nt - a, c, nl - c) : null;
-    return [label, `${a} of ${nt} (${pct(a, nt)})`, `${c} of ${nl} (${pct(c, nl)})`, {h: fx ? fmtP(fx.p).replace("p = ", "") : "–", t: fx ? fmtN(fx.p, 3) : "", c: fx && fx.p < .05 ? "sig" : ""}, fx ? fmtN(fx.or) : "–"];
+    return [label, `${a} of ${nt} (${pct(a, nt)})`, `${c} of ${nl} (${pct(c, nl)})`, ppDiff(nt ? a / nt : null, nl ? c / nl : null)];
   });
   return `<section class="st-sec">
     <div class="st-head"><div><span class="num">2 · Process</span><h3>How people moved through the workflow</h3></div><div class="st-ctl">${stCtl("seq", LEVEL_OPTS.slice(0, 2))}</div></div>
     <p class="st-q">Which ${lvName(lv)} follow which, counting human and AI tasks in order? Each row of a grid is where people were; each column is where they went next. Darker cells are a larger share of that row.</p>
     <div class="heats">${COND.map(heat).join("")}</div>
-    ${tests}
     <div class="st-sub">What came right before moving forward</div>
     ${tbl(`Task right before each decision to move forward (${lvName(lv)})`, [ONE[lv], "Tight decisions", "Loose decisions"], leadRows)}
     <div class="st-sub">What people did between the AI’s answer and moving forward</div>
-    ${tbl("Review before each decision, by workflow (Fisher’s exact test)", ["", "Tight", "Loose", "p (Fisher)", "Odds ratio"], flagRows)}
+    ${tbl("Review before each decision, by workflow", ["", "Tight", "Loose", "Tight − loose"], flagRows)}
   </section>`;
 }
 
@@ -1300,12 +1146,7 @@ function decisionHTML(S, D, both){
   const conds = COND.filter(c => D.some(d => d.cond === c));
   const bars = conds.map(c => { const mc = M.filter(m => m.cond === c); const t = reasons.map(r => mc.filter(m => m.r === r).length);
     return `<div class="bar-row cond"><span class="lab">${condName(c)}</span>${stackBar(reasons.map((r, i) => ({name: r, hex: hexOf(r), v: t[i], text: `${t[i]} ${t[i] === 1 ? "mention" : "mentions"}`})), mc.length, condName(c))}<span class="n">${mc.length}</span></div>`; }).join("");
-  let tests = "";
-  if (both){
-    const ct = chiTest(M.map(m => m.cond), M.map(m => m.r), COND, reasons);
-    const sig = ct.p != null && ct.p < .05;
-    tests += `<p class="result ${sig ? "" : "weak"}">${ct.df ? `${sig ? "People gave different reasons" : "No clear difference in the reasons given"} in tight and loose sessions: χ²(${ct.df}) = ${fmtN(ct.chi2)}, ${fmtP(ct.p)} (permutation), Cramér’s V = ${fmtN(ct.V)} (${sizeWord(ct.V)}), N = ${ct.N} ${twoN ? `reasons given (${D.length} decisions, ${twoN} with two reasons)` : "decisions"}.` : "Only one reason was coded, so there is nothing to test."}</p>`;
-  }
+  const tests = twoN ? `<p class="hint">${D.length} decisions gave ${M.length} reasons: ${twoN} ${twoN === 1 ? "decision" : "decisions"} gave two, and each reason is counted once.</p>` : "";
   // Review time by reason, dots colored by workflow
   const timed = D.filter(d => d.reviewSec != null), maxT = Math.max(10, ...timed.map(d => d.reviewSec));
   const stepT = maxT > 300 ? 60 : maxT > 120 ? 30 : maxT > 40 ? 10 : 5, ticks = [];
@@ -1317,17 +1158,14 @@ function decisionHTML(S, D, both){
     <div>${conds.map(c => `<span class="cond-key"><i style="background:${condVar(c)}"></i>${condName(c)}</span>`).join("")}<span class="cond-key"><i style="background:var(--ink);border-radius:1px;width:2px;height:12px;opacity:.55"></i>Median</span></div>
     <div class="plot">${ticks.map(t => `<span class="gridl" style="left:calc(var(--labw) + 10px + (100% - var(--labw) - 10px) * ${t / maxT})"></span>`).join("")}${dotRows}
       <div class="axis">${ticks.map(t => `<span style="left:${t / maxT * 100}%">${t} s</span>`).join("")}</div></div>` : `<p class="hint">No decisions have usable times.</p>`;
-  // Tests on time
+  // Time to decide, by workflow
   const timeRows = [];
   const rev = c => timed.filter(d => d.cond === c).map(d => d.reviewSec), del = c => D.filter(d => d.cond === c && d.delibSec != null).map(d => d.delibSec);
-  if (both){
-    [["Review: AI’s answer to moving forward", rev], ["Deliberation: previous decision to this one", del]].forEach(([label, fn]) => {
-      const mw = mannWhitney(fn("tight"), fn("loose"));
-      if (mw) timeRows.push([label, secs(mw.m1), secs(mw.m2), `Mann–Whitney U = ${fmtN(mw.U, 1)}`, {h: fmtP(mw.p), t: fmtN(mw.p, 3), c: mw.p < .05 ? "sig" : ""}, `r = ${fmtN(mw.rb)} (${sizeWord(mw.rb)})`]);
-    });
-  }
-  const kw = kruskal(reasons.map(r => timed.filter(d => d.reasons.includes(r)).map(d => d.reviewSec)));
-  if (kw) timeRows.push(["Review time across reasonings", "", "", `Kruskal–Wallis H(${kw.df}) = ${fmtN(kw.H)}`, {h: fmtP(kw.p), t: fmtN(kw.p, 3), c: kw.p < .05 ? "sig" : ""}, `ε² = ${fmtN(kw.eps2)}`]);
+  const span = xs => xs.length > 1 && Math.min(...xs) !== Math.max(...xs) ? ` (${secs(Math.min(...xs))}–${secs(Math.max(...xs))})` : "";
+  if (both) [["Review: AI’s answer to moving forward", rev], ["Deliberation: previous decision to this one", del]].forEach(([label, fn]) => {
+    const t = fn("tight"), l = fn("loose"), mt = median(t), ml = median(l);
+    timeRows.push([label, `${secs(mt)}${span(t)}`, `${secs(ml)}${span(l)}`, mt != null && ml != null ? `${mt - ml > 0 ? "+" : mt - ml < 0 ? "−" : ""}${secs(Math.abs(mt - ml))}` : "–"]);
+  });
   // What evidence went with each reasoning
   const prof = reasons.map(r => { const ds = D.filter(d => d.reasons.includes(r)), n = ds.length, has = f => ds.filter(f).length;
     const paired = [...new Set(ds.flatMap(d => d.reasons.filter(x => x !== r)))];
@@ -1345,7 +1183,7 @@ function decisionHTML(S, D, both){
     <div class="bars">${bars}</div>
     ${tests}
     ${dots}
-    ${timeRows.length ? tbl("Time to decide", ["", "Tight median", "Loose median", "Test", "p", "Effect size"], timeRows) : ""}
+    ${timeRows.length ? tbl("Time to decide", ["", "Tight median (range)", "Loose median (range)", "Tight − loose"], timeRows) : ""}
     <div class="st-sub">What each reasoning rested on</div>
     ${tbl("Evidence before each reasoning", ["Reasoning", "Decisions", "Tight / loose", "Median review", "Paired with", "No review", "With GATHER", "With JUDGE", "Re-prompted", "Most common review tasks"], prof)}
     <details><summary class="st-sub" style="cursor:pointer">Every decision (${D.length})</summary>
@@ -1357,16 +1195,13 @@ function decisionHTML(S, D, both){
 function processHTML(S, both){
   const rows = METRICS.map(([key, label, fmt]) => {
     const v = c => S.filter(s => s.cond === c).map(s => s.m[key]).filter(x => x != null);
-    const mw = both ? mannWhitney(v("tight"), v("loose")) : null;
-    return [label, ...COND.map(c => { const xs = v(c); return xs.length ? `${fmt(median(xs))}${xs.length > 1 ? ` (${fmt(Math.min(...xs))}–${fmt(Math.max(...xs))})` : ""}` : "–"; }),
-      mw ? fmtN(mw.U, 1) : "–", {h: mw ? fmtP(mw.p).replace("p = ", "") : "–", t: mw ? fmtN(mw.p, 3) : "", c: mw && mw.p < .05 ? "sig" : ""}, mw ? fmtN(mw.rb) : "–"];
+    return [label, ...COND.map(c => { const xs = v(c); return xs.length ? `${fmt(median(xs))}${xs.length > 1 && Math.min(...xs) !== Math.max(...xs) ? ` (${fmt(Math.min(...xs))}–${fmt(Math.max(...xs))})` : ""}` : "–"; })];
   });
-  const minP = both ? mannWhitney(S.filter(s => s.cond === "tight").map(() => 0), S.filter(s => s.cond === "loose").map(() => 1)) : null;
   const per = S.map(s => [s.f.name, s.cond, ...METRICS.map(([key, , fmt]) => fmt(s.m[key]))]);
   return `<section class="st-sec">
     <div class="st-head"><div><span class="num">4 · Sessions</span><h3>Session by session</h3></div></div>
-    <p class="st-q">One number per session, so each person counts once. Medians with the range in brackets; Mann–Whitney U with exact p-values.${minP ? ` With ${minP.n1} tight and ${minP.n2} loose sessions the smallest p this test can give is ${fmtN(minP.minP, 3)}.` : ""}</p>
-    ${tbl("Per-session measures by workflow", ["Measure", "Tight median (range)", "Loose median (range)", "Mann–Whitney U", "p (exact)", "Rank-biserial r"], rows)}
+    <p class="st-q">One number per session, so each person counts once. Medians with the range in brackets.</p>
+    ${tbl("Per-session measures by workflow", ["Measure", "Tight median (range)", "Loose median (range)"], rows)}
     <details><summary class="st-sub" style="cursor:pointer">Every session (${S.length})</summary>${tbl("Every session", ["Session", "Workflow", ...METRICS.map(([, l]) => l)], per)}</details>
   </section>`;
 }
@@ -1404,11 +1239,11 @@ function similarityHTML(S, both){
   if (both){
     const dis = cos.map(r => r.map(v => v == null ? null : 1 - v));
     const res = [["Profile dissimilarity (1 − cosine)", withinBetween(dis, labels)], [`Sequence distance (${om ? "optimal matching" : "edit"})`, withinBetween(dist, labels)]];
-    const rows = res.map(([label, r]) => r ? [label, fmtN(r.byGroup.tight, 3), fmtN(r.byGroup.loose, 3), fmtN(r.within, 3), fmtN(r.between, 3), `${r.diff >= 0 ? "+" : ""}${fmtN(r.diff, 3)}`,
-      {h: fmtP(r.p).replace("p = ", ""), t: fmtN(r.p, 3), c: r.p < .05 ? "sig" : ""}, `${r.perms.toLocaleString()}${r.exact ? " (all)" : ""}`] : [label, "–", "–", "–", "–", "–", "–", "Needs 2+ sessions in a workflow"]);
+    const rows = res.map(([label, r]) => r ? [label, fmtN(r.byGroup.tight, 3), fmtN(r.byGroup.loose, 3), fmtN(r.within, 3), fmtN(r.between, 3), `${r.diff >= 0 ? "+" : ""}${fmtN(r.diff, 3)}`]
+      : [label, "–", "–", "–", "–", "Needs 2+ sessions in a workflow"]);
     const seqRes = res[1][1];
-    tests = seqRes ? `<p class="result ${seqRes.p < .05 ? "" : "weak"}">${seqRes.diff > 0 ? "Sessions are closer to others in their own workflow" : "Sessions are not closer to their own workflow"} in the order of what they did: mean distance ${fmtN(seqRes.within)} within vs. ${fmtN(seqRes.between)} between workflows, ${fmtP(seqRes.p)} (${seqRes.exact ? `all ${seqRes.perms.toLocaleString()} ways` : `${seqRes.perms.toLocaleString()} random ways`} of relabeling the sessions; the smallest possible p here is ${fmtN(seqRes.minP, 3)}).</p>` : `<p class="result weak">Load at least two sessions of one workflow to compare distances within and between workflows.</p>`;
-    tests += tbl("Within vs. between workflows", ["Measure", "Within tight", "Within loose", "Within (all)", "Between", "Between − within", "p (one-sided)", "Relabelings"], rows);
+    tests = seqRes ? `<p class="result">${seqRes.diff > 0 ? "Sessions are closer to others in their own workflow" : "Sessions are not closer to their own workflow"} in the order of what they did: mean distance ${fmtN(seqRes.within)} within vs. ${fmtN(seqRes.between)} between workflows.</p>` : `<p class="result weak">Load at least two sessions of one workflow to compare distances within and between workflows.</p>`;
+    tests += tbl("Within vs. between workflows", ["Measure", "Within tight", "Within loose", "Within (all)", "Between", "Between − within"], rows);
   }
   return `<section class="st-sec">
     <div class="st-head"><div><span class="num">5 · Similarity</span><h3>Comparing workflows to each other</h3></div>
