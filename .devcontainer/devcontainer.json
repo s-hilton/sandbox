@@ -3,7 +3,7 @@
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
   "postCreateCommand": "pip install --user -r python/requirements.txt",
   "postAttachCommand": {
-    "dashboard": "cd python && python app.py --no-browser"
+    "dashboard": "python -m http.server 8501 --bind 0.0.0.0"
   },
   "forwardPorts": [8501],
   "portsAttributes": {
@@ -14,7 +14,7 @@
   },
   "customizations": {
     "codespaces": {
-      "openFiles": ["python/README.md"]
+      "openFiles": ["README.md"]
     },
     "vscode": {
       "extensions": ["ms-python.python"]
