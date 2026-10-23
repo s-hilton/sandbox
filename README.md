@@ -14,7 +14,7 @@ Cell A1 says `TIGHT` or `LOOSE`. The header row below it has `Time`, `Phase`, `A
 - **Actions** has one action per row. A row with an action and no task type belongs to the task above it. An action with no task type above it (e.g. `SESSION_START`) is an action only.
 - **Task Types** starts a new task on the row it is named.
 - **Action families** and **task families** are filled in from the codebook below, so they don't need their own columns. If a sheet has `Action Family` or `Task Family` columns, those are used instead.
-- **Reasoning to Move Forward** goes on the row where the person moved on (usually `APPROVE`).
+- **Reasoning to Move Forward** goes on the row where the person moved on (usually `APPROVE`). Two reasons go in one cell separated by `;` (`OWN_CHECK; LOOKS_RIGHT`): they show as two dots, two Reason columns in All levels, and count once under each reason in the statistics.
 - **Agent** can be left blank to keep the agent of the row above; AI and system actions (`SESSION_START`, `AI_WORKING`, …) need none.
 - Codes ignore case, spaces and underscores, and a small typo (`READ_AI_OUPUT`) is read as the closest code and noted on the left. `Direction Check` is read as `Direction to Check`.
 
@@ -52,10 +52,12 @@ Each map has an **Actions / Action families / Task types / Task families / All l
 Once transcripts are loaded, a **Statistics** tab works through the question *How do people convince themselves that they can move forward (accept, continue or submit AI output)?*, comparing tight with loose sessions:
 
 - **Overview**: headline numbers and a timeline of every session, colored by any level, with each decision to move forward marked by its reasoning.
+- **Tally**: how many times each action, action family, task type, task family, handoff and reason was coded in each session, each workflow and overall (switch to show one level or all).
 - **1 · Quantity**: the mix of human tasks or actions (by count or time) in each workflow. χ² test with a permutation p-value, Cramér's V and adjusted residuals, plus a session-level Mann–Whitney U for each category.
 - **2 · Process**: transition grids (which task follows which), a χ² test of whether the paths differ, what came right before each decision, and Fisher's exact tests on whether people reviewed, checked against records, or re-prompted before moving on.
 - **3 · Decisions**: the reasoning given in each workflow (χ²), review time (AI output → decision) and deliberation time (previous decision → this one) compared with Mann–Whitney U and across reasonings with Kruskal–Wallis, what evidence each reasoning rested on, and a list of every decision.
 - **4 · Sessions**: one number per session (length, AI turns, prompts, decisions, GATHER/JUDGE/STEER tasks, task variety, median review, …) with exact Mann–Whitney tests, so each person counts once.
+- **5 · Similarity**: how alike the sessions are. Profile similarity is the cosine between each session's code proportions (a sessions × sessions heatmap); sequence distance is edit (Levenshtein) or optimal-matching distance between the sessions' code sequences, which captures order. A permutation test asks whether sessions are closer to others in their own workflow than to the other workflow (with 3 and 3 sessions the smallest possible p is .10).
 
 **Download CSVs** saves every table (`statistics-tables.csv`) and every coded row with its times, families and decision links (`coded-events.csv`) for R, SPSS or Excel.
 

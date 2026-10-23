@@ -165,6 +165,8 @@ table.st td.l,table.st th.l{text-align:left}
 table.st td.wrap{white-space:normal;min-width:180px;max-width:320px}
 table.st th{font:500 10.5px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-bottom-color:var(--line-strong)}
 table.st tr.grp td{font-weight:600;padding-top:10px}
+table.st tr.grp td:first-child{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-top:16px}
+table.st tr.tot td{border-bottom-color:var(--line-strong)}
 table.st .sig{font-weight:600;color:var(--ink)}
 table.st .dim{color:var(--muted)}
 .nm{display:inline-flex;align-items:center;gap:6px}
@@ -187,6 +189,11 @@ table.heat th{font:500 11px var(--sans);text-align:right;padding:0 6px 0 0;white
 table.heat thead th{text-align:center;padding:0 0 2px}
 table.heat td{width:34px;height:26px;text-align:center;border-radius:3px;background:var(--bg);cursor:default}
 table.heat td:hover{outline:2px solid var(--ink)}
+table.heat.sim td{width:44px;font-size:11px}
+table.heat .cut{box-shadow:inset 2px 0 0 var(--ink)}
+table.heat tr.cut td,table.heat tr.cut th{box-shadow:inset 0 2px 0 var(--ink)}
+table.heat tr.cut td.cut{box-shadow:inset 2px 2px 0 var(--ink)}
+.cdot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;flex:none}
 table.heat caption{text-align:left;font-weight:600;font-size:12.5px;padding-bottom:6px}
 .plot{position:relative;padding-bottom:22px;--labw:170px}
 .prow{display:grid;grid-template-columns:var(--labw) minmax(0,1fr);gap:10px;align-items:center;height:26px;font-size:12.5px}
@@ -207,8 +214,6 @@ table.heat caption{text-align:left;font-weight:600;font-size:12.5px;padding-bott
 .mark:hover{box-shadow:0 0 0 2px var(--ink)}
 .cond-key{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;margin-right:14px}
 .cond-key i{width:11px;height:11px;border-radius:50%;display:inline-block}
-.methods{color:var(--muted);font-size:12.5px;margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;max-width:95ch}
-.methods b{color:var(--ink);font-weight:600}
 
 @media (max-width: 820px){
   body{height:auto}
@@ -434,11 +439,12 @@ function buildWorkflow(rows, name){
     if (phase){ stepLabels.push(phase); step = stepLabels.length - 1; }
     let time = null;
     if (timeRaw){ time = parseTime(timeRaw); if (time == null) badTimes.push(row); }
-    const reason = reasonRaw ? look("reason", reasonRaw) : null;
+    // Two reasons can share a cell, separated by ;
+    const reasons = reasonRaw.split(/\s*;\s*/).filter(Boolean).map(x => look("reason", x));
     if (actRaw || taskRaw){
       const act = actRaw ? look("action", actRaw) : null;
       const actFam = act ? family("actionFamily", val(r, C.actionFamily), act.family) : null;
-      const a = {action: act, actFam, reason, time, row};
+      const a = {action: act, actFam, reasons, time, row};
       const agentRaw = k(val(r, C.agent));
       let kind = /^ai\b|artificial|system|model|bot/.test(agentRaw) ? "ai" : /human|person|user|participant/.test(agentRaw) ? "human" : null;
       const last = entries[entries.length - 1];
@@ -452,11 +458,11 @@ function buildWorkflow(rows, name){
         entries.push({kind, task, taskFam: task ? family("taskFamily", val(r, C.taskFamily), task.family) : null, orphan: !task, step, actions: [a], row});
       }
       lastAgent = entries[entries.length - 1].kind;
-    } else if (reason){
+    } else if (reasons.length){
       // A reason on a row of its own belongs to the task above it
       const last = [...entries].reverse().find(e => e.kind !== "handoff");
-      const a = last && [...last.actions].reverse().find(x => !x.reason);
-      if (a) a.reason = reason; else lostReasons.push(row);
+      const a = last && [...last.actions].reverse().find(x => !x.reasons.length);
+      if (a) a.reasons = reasons; else lostReasons.push(row);
     }
     if (handRaw) entries.push({kind: "handoff", hand: look("handoff", handRaw), step, time, row, actions: []});
   });
@@ -479,7 +485,7 @@ function buildWorkflow(rows, name){
     e.dur = ts.some(a => a.dur != null) ? ts.reduce((s, a) => s + (a.dur || 0), 0) : null;
     e.end = ts.length ? ts[ts.length - 1].t + (ts[ts.length - 1].dur || 0) : null;
     e.lastT = ts.length ? ts[ts.length - 1].t : null;
-    e.reason = e.kind === "handoff" ? null : (e.actions.find(a => a.reason) || {}).reason || null;
+    e.reasons = e.kind === "handoff" ? [] : e.actions.flatMap(a => a.reasons).filter((r, i, all) => all.findIndex(x => x.name === r.name) === i);
   });
 
   if (fixed.size) warnings.push(`Read as the closest code: ${[...fixed].map(([a, b]) => `${a} → ${b}`).join(", ")}.`);
@@ -508,11 +514,12 @@ function buildWorkflow(rows, name){
     if (idx.length) steps.push({label, start: idx[0], end: idx[idx.length - 1]});
   });
   return {id: "w" + Math.random().toString(36).slice(2, 9), name, category, entries, events, columns, steps, stepLabels, warnings, counters,
-          hasAction: C.action >= 0, hasTask: C.task >= 0, hasReason: entries.some(e => e.reason)};
+          hasAction: C.action >= 0, hasTask: C.task >= 0, hasReason: entries.some(e => e.reasons.length),
+          maxReasons: Math.max(0, ...entries.flatMap(e => e.actions.map(a => a.reasons.length)))};
 }
 
 /* ---------- State ---------- */
-const state = {files: [], active: null, levels: {}, st: {tl: "taskFamily", comp: "taskFamily", measure: "count", seq: "taskFamily"}};
+const state = {files: [], active: null, levels: {}, st: {tally: "all", tl: "taskFamily", comp: "taskFamily", measure: "count", seq: "taskFamily", sim: "taskFamily", dist: "lev"}};
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const baseName = n => n.replace(/\.(csv|xlsx|xls|numbers)$/i, "");
@@ -569,7 +576,7 @@ function groupsOf(tab){
 /* ---------- Levels ---------- */
 // Each map shows actions, action families, task types, task families, or all of them side by side ("all")
 const LEVEL_LABEL = {task: "Task types", taskFamily: "Task families", action: "Actions", actionFamily: "Action families", all: "All levels"};
-const SUB_LABEL = {action: "Action", actionFamily: "Act. fam.", task: "Task", taskFamily: "Task fam.", reason: "Reason"};
+const SUB_LABEL = {action: "Action", actionFamily: "Act. fam.", task: "Task", taskFamily: "Task fam.", reason: "Reason", reason2: "Reason 2", reason3: "Reason 3"};
 const LEVEL_SUFFIX = {task: "", taskFamily: "-task-families", action: "-actions", actionFamily: "-action-families", all: "-all-levels"};
 const fileLevels = f => [...(f.hasAction ? ["action", "actionFamily"] : []), ...(f.hasTask ? ["task", "taskFamily"] : [])];
 const viewsOf = f => { const l = fileLevels(f); return l.length > 1 ? [...l, "all"] : l; };
@@ -586,19 +593,20 @@ function timing(e){
 function taskCell(e, level){
   const x = level === "taskFamily" ? e.taskFam : e.task;
   const acts = e.actions.filter(a => a.action).map(a => a.action.name);
-  return {name: x.name, hex: x.hex, known: x.known, rows: 1, reason: e.reason, body: [
+  return {name: x.name, hex: x.hex, known: x.known, rows: 1, reasons: e.reasons, body: [
     level === "taskFamily" ? `Task type: ${e.task.name}` : `Task family: ${famName(e.taskFam)}`,
-    acts.length ? `Actions: ${acts.join(", ")}` : "", timing(e), e.reason ? `Reasoning: ${e.reason.name}` : "", `Row ${e.row}`]};
+    acts.length ? `Actions: ${acts.join(", ")}` : "", timing(e), e.reasons.length ? `Reasoning: ${e.reasons.map(r => r.name).join("; ")}` : "", `Row ${e.row}`]};
 }
 function actionCell(a, e, level){
   const x = level === "actionFamily" ? (a.actFam || UNKNOWN_FAMILY) : a.action;
-  return {name: x.name, hex: x.hex, known: x.known, rows: 1, reason: a.reason, body: [
+  return {name: x.name, hex: x.hex, known: x.known, rows: 1, reasons: a.reasons, body: [
     level === "actionFamily" ? `Action: ${a.action.name}` : `Action family: ${famName(a.actFam)}`,
     e.orphan ? "No task type" : `Task: ${e.task.name} (${famName(e.taskFam)})`,
-    a.t != null ? `${clock(a.t)}${a.dur != null ? ` · ${secs(a.dur)}` : ""}` : "", a.reason ? `Reasoning: ${a.reason.name}` : "", `Row ${a.row}`]};
+    a.t != null ? `${clock(a.t)}${a.dur != null ? ` · ${secs(a.dur)}` : ""}` : "", a.reasons.length ? `Reasoning: ${a.reasons.map(r => r.name).join("; ")}` : "", `Row ${a.row}`]};
 }
-const handCell = e => ({name: e.hand.name, hex: e.hand.hex, known: e.hand.known, rows: 1, body: [e.t != null ? clock(e.t) : "", `Row ${e.row}`]});
-const reasonCell = a => ({name: a.reason.name, hex: a.reason.hex, known: a.reason.known, rows: 1, body: ["Reasoning to move forward", `On ${a.action ? a.action.name : "this row"}`, `Row ${a.row}`]});
+const handCell = e => ({name: e.hand.name, hex: e.hand.hex, known: e.hand.known, rows: 1, reasons: [], body: [e.t != null ? clock(e.t) : "", `Row ${e.row}`]});
+const reasonCell = (a, i) => ({name: a.reasons[i].name, hex: a.reasons[i].hex, known: a.reasons[i].known, rows: 1, body: [
+  `Reasoning to move forward${a.reasons.length > 1 ? ` (${i + 1} of ${a.reasons.length}: ${a.reasons.map(r => r.name).join("; ")})` : ""}`, `On ${a.action ? a.action.name : "this row"}`, `Row ${a.row}`]});
 function cellsAt(c, level){
   if (c.kind === "handoff") return c.entries.map(handCell);
   if (level === "task" || level === "taskFamily") return c.entries.filter(e => !e.orphan).map(e => taskCell(e, level));
@@ -612,7 +620,8 @@ function view(f, level){
 // Each human and AI column split into one sub-column per level, one row per action, with task squares
 // stretching down the rows of their actions. "" is an empty square; null is covered by a tall square above.
 function allLevels(f){
-  const subs = [...fileLevels(f), ...(f.hasReason ? ["reason"] : [])], columns = [], first = [], last = [];
+  // One Reason sub-column per reason a row can hold (two when a cell has "OWN_CHECK; LOOKS_RIGHT")
+  const subs = [...fileLevels(f), ...Array.from({length: Math.min(3, f.maxReasons)}, (_, i) => i ? `reason${i + 1}` : "reason")], columns = [], first = [], last = [];
   f.columns.forEach(c => {
     first.push(columns.length);
     if (c.kind === "handoff") columns.push({...c, cells: cellsAt(c), sub: ""});
@@ -620,7 +629,7 @@ function allLevels(f){
       const rows = c.entries.flatMap(e => e.actions.map((a, i) => ({e, a, i})));
       subs.forEach(sub => {
         const cells = rows.map(({e, a, i}) =>
-          sub === "reason" ? (a.reason ? reasonCell(a) : "") :
+          sub.startsWith("reason") ? (a.reasons[+(sub.slice(6) || 1) - 1] ? reasonCell(a, +(sub.slice(6) || 1) - 1) : "") :
           sub === "action" || sub === "actionFamily" ? (a.action ? actionCell(a, e, sub) : "") :
           e.orphan ? "" : i ? null : {...taskCell(e, sub), rows: e.actions.length});
         columns.push({...c, cells, sub});
@@ -641,7 +650,7 @@ const tabAt = (tab, level) => ({...tab, level, files: tab.files.map(f => view(f,
 function legendOf(files){
   const seen = new Map();
   const add = x => { if (x && !seen.has(x.name)) seen.set(x.name, x); };
-  files.forEach(f => f.columns.forEach(c => c.cells.forEach(x => { if (x){ add(x); if (x.reason) add({...x.reason, name: x.reason.name}); } })));
+  files.forEach(f => f.columns.forEach(c => c.cells.forEach(x => { if (x){ add(x); (x.reasons || []).forEach(add); } })));
   return [...seen.values()];
 }
 
@@ -711,7 +720,7 @@ function tableHTML(f){
       const st = f.steps.find(s => ci >= s.start && ci <= s.end);
       const n = c.cells.filter(Boolean).length, pos = c.cells.slice(0, r).filter(Boolean).length + 1;
       const lines = [`${KIND[c.kind]} · ${c.label}${c.sub ? ` · ${SUB_LABEL[c.sub]}` : ""} · item ${pos} of ${n}`, st ? st.label : "", ...x.body, x.hex + (x.known ? "" : " · not in the codebook")].filter(Boolean);
-      const badge = x.reason && f.level !== "all" ? `<i class="rb" style="background:${x.reason.hex}"></i>` : "";
+      const badge = f.level !== "all" ? (x.reasons || []).map((rz, i) => `<i class="rb" style="background:${rz.hex};right:${-6 + i * 9}px"></i>`).join("") : "";
       return `<td class="hit"${span > 1 ? ` rowspan="${span}"` : ""} tabindex="0" aria-label="${esc(x.name)}, ${c.label}" data-name="${esc(x.name)}" data-hex="${x.hex}" data-known="${x.known}" data-body="${esc(lines.join("\n"))}"><span class="sq ${x.known ? "" : "unknown"}" style="background:${x.hex}${span > 1 ? `;height:${span * 27 - 9}px` : ""}">${badge}</span></td>`; }).join("")}</tr>`;
   }
   return h + `</tbody></table>`;
@@ -763,7 +772,7 @@ function renderResults(){
     </div>
     <div class="sheet-wrap">${body}</div>
     <div><h3 class="eyebrow" style="margin:0 0 8px">Legend</h3>${legendHTML(legendOf(files.map(f => view(f, levelOf(tab, f)))))}</div>
-    <p class="hint">Hover over a square, or tap it on a touch screen, to see what it is, its time and the row it came from. A dot on a square's corner is the reasoning to move forward coded on it. Use the switch to move between actions, action families, task types, task families and all levels side by side. Downloads include every level.</p>`;
+    <p class="hint">Hover over a square, or tap it on a touch screen, to see what it is, its time and the row it came from. A dot on a square's corner is the reasoning to move forward coded on it (two dots for two reasons). Use the switch to move between actions, action families, task types, task families and all levels side by side. Downloads include every level.</p>`;
 }
 
 function renderDownloadLabels(){
@@ -914,6 +923,60 @@ function fisher(a, b, c, d){
 }
 const entropy = names => { const m = new Map(); names.forEach(n => m.set(n, (m.get(n) || 0) + 1)); return -sum([...m.values()].map(c => c / names.length * Math.log2(c / names.length))); };
 
+// Cosine similarity of two count vectors (1 = the same mix, 0 = nothing in common)
+function cosine(a, b){
+  const dot = sum(a.map((v, i) => v * b[i])), na = Math.sqrt(sum(a.map(v => v * v))), nb = Math.sqrt(sum(b.map(v => v * v)));
+  return na && nb ? dot / (na * nb) : null;
+}
+// Distance between two code sequences, divided by the longer length (0 = identical, 1 = nothing shared).
+// sub(a, b) is the cost of swapping one code for another; inserting or deleting a code costs 1.
+function seqDistance(x, y, sub){
+  if (!x.length && !y.length) return 0;
+  let prev = Array.from({length: y.length + 1}, (_, j) => j);
+  for (let i = 1; i <= x.length; i++){
+    const cur = [i];
+    for (let j = 1; j <= y.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (x[i - 1] === y[j - 1] ? 0 : sub(x[i - 1], y[j - 1])));
+    prev = cur;
+  }
+  return prev[y.length] / Math.max(x.length, y.length);
+}
+// Optimal matching substitution costs from transition rates (TraMineR's "TRATE"): 2 − p(a→b) − p(b→a),
+// so codes that often follow each other are cheaper to swap
+function trateCosts(seqs){
+  const out = new Map(), tot = new Map();
+  seqs.forEach(q => q.slice(1).forEach((b, i) => { const a = q[i], k2 = a + "\u0000" + b; out.set(k2, (out.get(k2) || 0) + 1); tot.set(a, (tot.get(a) || 0) + 1); }));
+  const p = (a, b) => tot.get(a) ? (out.get(a + "\u0000" + b) || 0) / tot.get(a) : 0;
+  return (a, b) => 2 - p(a, b) - p(b, a);
+}
+// Are sessions in the same workflow closer to each other than to the other workflow?
+// Statistic: mean between-workflow distance − mean within-workflow distance, tested by relabeling sessions
+// (every relabeling when there are ≤ 50,000 of them, else 5,000 random ones)
+function withinBetween(D, labels){
+  const n = labels.length;
+  const stat = lab => { let w = 0, nw = 0, b = 0, nb = 0;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++){ if (D[i][j] == null) continue; if (lab[i] === lab[j]){ w += D[i][j]; nw++; } else { b += D[i][j]; nb++; } }
+    return nw && nb ? {within: w / nw, between: b / nb, diff: b / nb - w / nw} : null; };
+  const obs = stat(labels);
+  if (!obs) return null;
+  const groupWithin = g => { const ix = labels.map((l, i) => l === g ? i : -1).filter(i => i >= 0), v = [];
+    ix.forEach((i, a) => ix.slice(a + 1).forEach(j => { if (D[i][j] != null) v.push(D[i][j]); })); return v.length ? sum(v) / v.length : null; };
+  const g0 = labels[0], n1 = labels.filter(l => l === g0).length, other = labels.find(l => l !== g0), total = choose(n, n1);
+  let hit = 0, count = 0;
+  const test = lab => { const st = stat(lab); if (!st) return; count++; if (st.diff >= obs.diff - 1e-12) hit++; };
+  if (total <= 50000){
+    const lab = Array(n).fill(other);
+    const rec = (start, left) => { if (!left){ test(lab); return; } for (let i = start; i <= n - left; i++){ lab[i] = g0; rec(i + 1, left - 1); lab[i] = other; } };
+    rec(0, n1);
+  } else {
+    const r = rng(13), sh = labels.slice();
+    for (let i = 0; i < 5000; i++) test(shuffleInPlace(sh, r));
+    hit++; count++;  // count the observed labeling
+  }
+  // With equal groups, swapping the two labels gives the same split, so each split is counted twice
+  const minP = total <= 50000 ? (n1 * 2 === n ? 2 : 1) / total : 1 / count;
+  return {...obs, p: count ? hit / count : null, perms: count, exact: total <= 50000, minP, byGroup: Object.fromEntries([...new Set(labels)].map(g => [g, groupWithin(g)]))};
+}
+
 const fmtP = p => p == null ? "–" : p < .001 ? "p < .001" : `p = ${p.toFixed(3).replace(/^0/, "")}`;
 const fmtN = (v, d = 2) => v == null || !isFinite(v) ? "–" : (+v).toFixed(d);
 const pct = (a, b) => b ? `${Math.round(a / b * 100)}%` : "–";
@@ -933,14 +996,24 @@ const isPrompt = a => a.action && a.action.name === "SEND_PROMPT";
 const firstTime = f => { const ev = f.events.find(v => v.a.t != null); return ev ? ev.a.t : null; };
 const lastTime = f => { const ts = f.events.filter(v => v.a.t != null); return ts.length ? ts[ts.length - 1].a.t : null; };
 const nameAt = (e, level) => level === "taskFamily" ? famName(e.taskFam) : e.task.name;
+const actName = (a, level) => (level === "action" ? a.action : (a.actFam || UNKNOWN_FAMILY)).name;
+const isTaskLevel = level => level === "task" || level === "taskFamily";
+// What people did: human tasks (task levels) or human actions (action levels)
+const humanUnits = (f, lv) => isTaskLevel(lv)
+  ? humanTasks(f).map(e => ({name: nameAt(e, lv), dur: e.dur}))
+  : actionsOf(f, "human").map(({a}) => ({name: actName(a, lv), dur: a.dur}));
+// The whole session in order, human and AI, as a list of codes
+const codeSeq = (f, lv) => isTaskLevel(lv)
+  ? seqTasks(f).map(e => nameAt(e, lv))
+  : f.entries.filter(e => e.kind !== "handoff").flatMap(e => e.actions.filter(a => a.action).map(a => actName(a, lv)));
 
 // A decision to move forward is an AUTHORIZE task, or any task with a reasoning coded on it.
 // Its review is the human work since the AI last answered (or since the previous decision, if that came later).
 function decisionsOf(f){
   const E = f.entries, out = []; let prev = -1;
   E.forEach((e, i) => {
-    if (e.kind === "handoff" || (e.orphan && !e.reason)) return;
-    if (!(e.task && e.task.name === "AUTHORIZE") && !e.reason) return;
+    if (e.kind === "handoff" || (e.orphan && !e.reasons.length)) return;
+    if (!(e.task && e.task.name === "AUTHORIZE") && !e.reasons.length) return;
     let ai = -1;
     for (let j = i - 1; j > prev; j--) if (E[j].kind === "ai" && !E[j].orphan){ ai = j; break; }
     const turnsSince = new Set(E.slice(prev + 1, i).filter(x => x.kind === "ai" && !x.orphan).map(x => x.col)).size;
@@ -951,7 +1024,7 @@ function decisionsOf(f){
     const delibStart = prev >= 0 ? E[prev].start : firstTime(f);
     const lead = [...E.slice(0, i)].reverse().find(x => x.kind !== "handoff" && !x.orphan);
     out.push({f, cond: f.category, idx: out.length + 1, e, step: e.step >= 0 ? f.stepLabels[e.step] : "", row: e.row,
-      reason: e.reason ? e.reason.name : "(not coded)", t: e.start,
+      reasons: e.reasons.length ? e.reasons.map(r => r.name) : ["(not coded)"], reason: e.reasons.length ? e.reasons.map(r => r.name).join("; ") : "(not coded)", t: e.start,
       reviewSec: e.start != null && reviewStart != null && e.start >= reviewStart ? e.start - reviewStart : null,
       delibSec: e.start != null && delibStart != null && e.start >= delibStart ? e.start - delibStart : null,
       review, reviewFams: new Set(review.map(x => famName(x.taskFam))), reviewActions: sum(review.map(x => x.actions.filter(a => a.action).length)),
@@ -1029,11 +1102,12 @@ function statsHTML(files){
     ${!both ? `<p class="caveat">Load at least one TIGHT and one LOOSE transcript to compare them. Until then the tests below are left out and only the descriptions are shown.</p>` : ""}
     ${overviewHTML(S, both)}
     ${timelineHTML(S)}
+    ${tallyHTML(S)}
     ${compositionHTML(S, both)}
     ${sequenceHTML(S, D, both)}
     ${decisionHTML(S, D, both)}
     ${processHTML(S, both)}
-    ${methodsHTML()}`;
+    ${similarityHTML(S, both)}`;
 }
 
 function overviewHTML(S, both){
@@ -1065,13 +1139,13 @@ function timelineHTML(S){
     pieces.forEach(p => names.add(p.name));
     return `<div class="tl-row"><span class="lab"><span>${esc(s.f.name)}</span><span><span class="chip ${s.cond}">${s.cond}</span></span></span><div class="tl-track">
       ${pieces.map(p => `<span ${tipAttrs(p.name, p.hex, [`${p.who === "ai" ? "AI" : "Human"} · ${p.sub}`, `${clock(p.t)} · ${secs(p.d)}`, `Row ${p.row}`], "seg")} style="left:${x(p.t)}%;width:${p.d / span * 100}%;background:${p.hex}"></span>`).join("")}
-      ${s.decisions.filter(d => d.t != null).map(d => `<span ${tipAttrs(`Moved forward: ${d.reason}`, hexOf(d.reason), [d.step, `${clock(d.t)} · review ${secs(d.reviewSec)}`, d.review.length ? `Review: ${d.review.map(e => e.task.name).join(", ")}` : "No review since the AI answered"], "mark")} style="left:${x(d.t)}%;background:${hexOf(d.reason)}"></span>`).join("")}
+      ${s.decisions.filter(d => d.t != null).map(d => `<span ${tipAttrs(`Moved forward: ${d.reason}`, hexOf(d.reasons[0]), [d.step, `${clock(d.t)} · review ${secs(d.reviewSec)}`, d.review.length ? `Review: ${d.review.map(e => e.task.name).join(", ")}` : "No review since the AI answered"], "mark")} style="left:${x(d.t)}%;background:${d.reasons.length > 1 ? `linear-gradient(90deg, ${hexOf(d.reasons[0])} 50%, ${hexOf(d.reasons[1])} 50%)` : hexOf(d.reasons[0])}"></span>`).join("")}
     </div></div>`;
   }).join("");
-  const reasons = [...new Set(S.flatMap(s => s.decisions.map(d => d.reason)))];
+  const reasons = catsPresent("reason", S.flatMap(s => s.decisions.flatMap(d => d.reasons)));
   return `<section class="st-sec">
     <div class="st-head"><div><span class="num">Overview</span><h3>Each session over time</h3></div><div class="st-ctl">${stCtl("tl", LEVEL_OPTS)}</div></div>
-    <p class="st-q">Every session starts at 0. Bars are ${lvName(lv)} sized by how long they lasted; diamonds are decisions to move forward, colored by the reasoning coded on them.</p>
+    <p class="st-q">Every session starts at 0. Bars are ${lvName(lv)} sized by how long they lasted; diamonds are decisions to move forward, colored by the reasoning coded on them (split in two for two reasons).</p>
     ${legendHTML(catsPresent(lv, [...names]).map(n => ({name: n, hex: hexOf(n), known: true})))}
     <div class="plot">${ticks.map(t => `<span class="gridl" style="left:calc(var(--labw) + 10px + (100% - var(--labw) - 10px) * ${t / span})"></span>`).join("")}${rows}
       <div class="axis">${ticks.map(t => `<span style="left:${t / span * 100}%">${t / 60} min</span>`).join("")}</div></div>
@@ -1079,14 +1153,42 @@ function timelineHTML(S){
   </section>`;
 }
 
+/* Section: tally of every code in every session */
+// How many times each code was coded: every action row, every task, every handoff and every reason given (human and AI)
+const TALLY = [
+  ["action", "Actions", f => f.entries.flatMap(e => e.actions.filter(a => a.action).map(a => a.action.name))],
+  ["actionFamily", "Action families", f => f.entries.flatMap(e => e.actions.filter(a => a.action).map(a => actName(a, "actionFamily")))],
+  ["task", "Task types", f => f.entries.filter(e => e.kind !== "handoff" && !e.orphan).map(e => e.task.name)],
+  ["taskFamily", "Task families", f => f.entries.filter(e => e.kind !== "handoff" && !e.orphan).map(e => famName(e.taskFam))],
+  ["handoff", "Handoffs", f => f.entries.filter(e => e.kind === "handoff").map(e => e.hand.name)],
+  ["reason", "Reasons", f => f.entries.flatMap(e => e.actions.flatMap(a => a.reasons.map(r => r.name)))],
+];
+ORDER.handoff = HANDOFFS.map(([n]) => n);
+function tallyHTML(S){
+  const pick = state.st.tally, levels = TALLY.filter(([lv]) => pick === "all" || lv === pick);
+  const conds = COND.filter(c => S.some(s => s.cond === c));
+  const rows = levels.flatMap(([lv, label, get]) => {
+    const per = S.map(s => get(s.f)), cats = catsPresent(lv, per.flat());
+    const count = (list, c) => list.filter(x => x === c).length;
+    const line = c => { const v = per.map(l => count(l, c)), byC = conds.map(cd => sum(v.filter((_, i) => S[i].cond === cd)));
+      return [{h: nmHTML(c, hexOf(c)), t: c}, ...v.map(x => ({h: x ? `${x}` : `<span class="dim">0</span>`, t: x})), ...byC.map(x => ({h: `<b>${x}</b>`, t: x})), {h: `<b>${sum(v)}</b>`, t: sum(v)}]; };
+    const total = [{h: `<b>${label}: total</b>`, t: `${label}: total`}, ...per.map(l => ({h: `<b>${l.length}</b>`, t: l.length})),
+      ...conds.map(cd => ({h: `<b>${sum(per.filter((_, i) => S[i].cond === cd).map(l => l.length))}</b>`, t: sum(per.filter((_, i) => S[i].cond === cd).map(l => l.length))})), {h: `<b>${per.flat().length}</b>`, t: per.flat().length}];
+    return cats.length ? [{cells: [{h: esc(label), t: label}, ...S.map(() => ""), ...conds.map(() => ""), ""], cls: "grp"}, ...cats.map(line), {cells: total, cls: "tot"}] : [];
+  });
+  return `<section class="st-sec">
+    <div class="st-head"><div><span class="num">Tally</span><h3>How often each code occurs</h3></div>
+      <div class="st-ctl">${stCtl("tally", [["all", "All"], ...TALLY.map(([lv, label]) => [lv, label])])}</div></div>
+    <p class="st-q">Counts for each session, then each workflow and everything together. Every action row, every task (human and AI), every handoff and every reason given counts once.</p>
+    ${tbl("Tally of every code", ["Code", ...S.map(s => `${s.f.name} (${s.cond})`), ...conds.map(c => `All ${c}`), "All sessions"], rows, "tally")}
+  </section>`;
+}
+
 /* Section: task mix */
 function compositionHTML(S, both){
   const lv = state.st.comp, byTime = state.st.measure === "time";
   // Units are human tasks (task levels) or human actions (action levels)
-  const units = s => lv === "task" || lv === "taskFamily"
-    ? humanTasks(s.f).map(e => ({name: nameAt(e, lv), dur: e.dur}))
-    : actionsOf(s.f, "human").map(({a}) => ({name: (lv === "action" ? a.action : (a.actFam || UNKNOWN_FAMILY)).name, dur: a.dur}));
-  const U = S.map(s => ({s, u: units(s)}));
+  const U = S.map(s => ({s, u: humanUnits(s.f, lv)}));
   const cats = catsPresent(lv, U.flatMap(x => x.u.map(u => u.name)));
   const val = u => byTime ? (u.dur || 0) : 1;
   const tally = us => cats.map(c => sum(us.filter(u => u.name === c).map(val)));
@@ -1158,6 +1260,7 @@ function sequenceHTML(S, D, both){
     ["Review included a JUDGE task", d => d.reviewFams.has("JUDGE")],
     ["Review included CHECK_AGAINST_RECORDS", d => d.review.some(e => e.task.name === "CHECK_AGAINST_RECORDS")],
     ["Prompted the AI again since the last decision", d => d.prompts > 0],
+    ["Gave two or more reasons", d => d.reasons.length > 1],
   ];
   const flagRows = flags.map(([label, fn]) => {
     const a = D.filter(d => d.cond === "tight" && fn(d)).length, nt = D.filter(d => d.cond === "tight").length;
@@ -1179,23 +1282,25 @@ function sequenceHTML(S, D, both){
 
 /* Section: decisions */
 function decisionHTML(S, D, both){
-  const reasons = catsPresent("reason", D.map(d => d.reason));
+  // A decision with two reasons counts once under each (a "mention")
+  const reasons = catsPresent("reason", D.flatMap(d => d.reasons)), M = D.flatMap(d => d.reasons.map(r => ({d, cond: d.cond, r})));
+  const twoN = D.filter(d => d.reasons.length > 1).length;
   const conds = COND.filter(c => D.some(d => d.cond === c));
-  const bars = conds.map(c => { const dc = D.filter(d => d.cond === c); const t = reasons.map(r => dc.filter(d => d.reason === r).length);
-    return `<div class="bar-row cond"><span class="lab">${condName(c)}</span>${stackBar(reasons.map((r, i) => ({name: r, hex: hexOf(r), v: t[i], text: `${t[i]} decisions`})), dc.length, condName(c))}<span class="n">${dc.length}</span></div>`; }).join("");
+  const bars = conds.map(c => { const mc = M.filter(m => m.cond === c); const t = reasons.map(r => mc.filter(m => m.r === r).length);
+    return `<div class="bar-row cond"><span class="lab">${condName(c)}</span>${stackBar(reasons.map((r, i) => ({name: r, hex: hexOf(r), v: t[i], text: `${t[i]} ${t[i] === 1 ? "mention" : "mentions"}`})), mc.length, condName(c))}<span class="n">${mc.length}</span></div>`; }).join("");
   let tests = "";
   if (both){
-    const ct = chiTest(D.map(d => d.cond), D.map(d => d.reason), COND, reasons);
+    const ct = chiTest(M.map(m => m.cond), M.map(m => m.r), COND, reasons);
     const sig = ct.p != null && ct.p < .05;
-    tests += `<p class="result ${sig ? "" : "weak"}">${ct.df ? `${sig ? "People gave different reasons" : "No clear difference in the reasons given"} in tight and loose sessions: χ²(${ct.df}) = ${fmtN(ct.chi2)}, ${fmtP(ct.p)} (permutation), Cramér’s V = ${fmtN(ct.V)} (${sizeWord(ct.V)}), N = ${ct.N} decisions.` : "Only one reason was coded, so there is nothing to test."}</p>`;
+    tests += `<p class="result ${sig ? "" : "weak"}">${ct.df ? `${sig ? "People gave different reasons" : "No clear difference in the reasons given"} in tight and loose sessions: χ²(${ct.df}) = ${fmtN(ct.chi2)}, ${fmtP(ct.p)} (permutation), Cramér’s V = ${fmtN(ct.V)} (${sizeWord(ct.V)}), N = ${ct.N} ${twoN ? `reasons given (${D.length} decisions, ${twoN} with two reasons)` : "decisions"}.` : "Only one reason was coded, so there is nothing to test."}</p>`;
   }
   // Review time by reason, dots colored by workflow
   const timed = D.filter(d => d.reviewSec != null), maxT = Math.max(10, ...timed.map(d => d.reviewSec));
   const stepT = maxT > 300 ? 60 : maxT > 120 ? 30 : maxT > 40 ? 10 : 5, ticks = [];
   for (let t = 0; t <= maxT; t += stepT) ticks.push(t);
-  const dotRows = reasons.map(r => { const ds = timed.filter(d => d.reason === r), m = median(ds.map(d => d.reviewSec));
+  const dotRows = reasons.map(r => { const ds = timed.filter(d => d.reasons.includes(r)), m = median(ds.map(d => d.reviewSec));
     return `<div class="prow"><span class="lab">${nmHTML(r, hexOf(r))}</span><div class="track">${m != null ? `<span class="med" style="left:${m / maxT * 100}%" title="Median ${secs(m)}"></span>` : ""}${ds.map(d =>
-      `<span ${tipAttrs(`${r} · ${secs(d.reviewSec)}`, hexOf(r), [`${d.f.name} (${d.cond})`, d.step, d.review.length ? `Review: ${d.review.map(e => e.task.name).join(", ")}` : "No review since the AI answered", `Row ${d.row}`], "pt")} style="left:${d.reviewSec / maxT * 100}%;background:${condVar(d.cond)}"></span>`).join("")}</div></div>`; }).join("");
+      `<span ${tipAttrs(`${r} · ${secs(d.reviewSec)}`, hexOf(r), [`${d.f.name} (${d.cond})`, d.reasons.length > 1 ? `Reasons: ${d.reason}` : "", d.step, d.review.length ? `Review: ${d.review.map(e => e.task.name).join(", ")}` : "No review since the AI answered", `Row ${d.row}`], "pt")} style="left:${d.reviewSec / maxT * 100}%;background:${condVar(d.cond)}"></span>`).join("")}</div></div>`; }).join("");
   const dots = timed.length ? `<div class="st-sub">Review time before moving forward, by reasoning</div>
     <div>${conds.map(c => `<span class="cond-key"><i style="background:${condVar(c)}"></i>${condName(c)}</span>`).join("")}<span class="cond-key"><i style="background:var(--ink);border-radius:1px;width:2px;height:12px;opacity:.55"></i>Median</span></div>
     <div class="plot">${ticks.map(t => `<span class="gridl" style="left:calc(var(--labw) + 10px + (100% - var(--labw) - 10px) * ${t / maxT})"></span>`).join("")}${dotRows}
@@ -1209,19 +1314,20 @@ function decisionHTML(S, D, both){
       if (mw) timeRows.push([label, secs(mw.m1), secs(mw.m2), `Mann–Whitney U = ${fmtN(mw.U, 1)}`, {h: fmtP(mw.p), t: fmtN(mw.p, 3), c: mw.p < .05 ? "sig" : ""}, `r = ${fmtN(mw.rb)} (${sizeWord(mw.rb)})`]);
     });
   }
-  const kw = kruskal(reasons.map(r => timed.filter(d => d.reason === r).map(d => d.reviewSec)));
+  const kw = kruskal(reasons.map(r => timed.filter(d => d.reasons.includes(r)).map(d => d.reviewSec)));
   if (kw) timeRows.push(["Review time across reasonings", "", "", `Kruskal–Wallis H(${kw.df}) = ${fmtN(kw.H)}`, {h: fmtP(kw.p), t: fmtN(kw.p, 3), c: kw.p < .05 ? "sig" : ""}, `ε² = ${fmtN(kw.eps2)}`]);
   // What evidence went with each reasoning
-  const prof = reasons.map(r => { const ds = D.filter(d => d.reason === r), n = ds.length, has = f => ds.filter(f).length;
+  const prof = reasons.map(r => { const ds = D.filter(d => d.reasons.includes(r)), n = ds.length, has = f => ds.filter(f).length;
+    const paired = [...new Set(ds.flatMap(d => d.reasons.filter(x => x !== r)))];
     const common = new Map(); ds.forEach(d => new Set(d.review.map(e => e.task.name)).forEach(t => common.set(t, (common.get(t) || 0) + 1)));
     return [{h: nmHTML(r, hexOf(r)), t: r}, n, COND.map(c => ds.filter(d => d.cond === c).length).join(" / "), secs(median(ds.map(d => d.reviewSec).filter(v => v != null))),
-      pct(has(d => !d.review.length), n), pct(has(d => d.reviewFams.has("GATHER")), n), pct(has(d => d.reviewFams.has("JUDGE")), n), pct(has(d => d.prompts > 0), n),
+      paired.join(", ") || "–", pct(has(d => !d.review.length), n), pct(has(d => d.reviewFams.has("GATHER")), n), pct(has(d => d.reviewFams.has("JUDGE")), n), pct(has(d => d.prompts > 0), n),
       {h: esc([...common].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t, x]) => `${t} (${x})`).join(", ") || "–"), t: [...common].map(([t, x]) => `${t} (${x})`).join("; "), c: "wrap l"}]; });
-  const list = D.map(d => [d.f.name, d.cond, d.step || "–", {h: nmHTML(d.reason, hexOf(d.reason)), t: d.reason}, clock(d.t) || "–", secs(d.reviewSec), secs(d.delibSec),
+  const list = D.map(d => [d.f.name, d.cond, d.step || "–", {h: d.reasons.map(r => nmHTML(r, hexOf(r))).join(" "), t: d.reason}, clock(d.t) || "–", secs(d.reviewSec), secs(d.delibSec),
     d.reviewActions, d.prompts, {h: esc(d.review.map(e => e.task.name).join(" → ") || "No review"), t: d.review.map(e => e.task.name).join(" > "), c: "wrap l"}, d.row]);
   return `<section class="st-sec">
     <div class="st-head"><div><span class="num">3 · Decisions</span><h3>When and why people moved forward</h3></div></div>
-    <p class="st-q">Each AUTHORIZE task (or task with a reasoning coded on it) is one decision. Its review is the human work between the AI’s last answer and the decision; its deliberation runs from the previous decision (or the session start).</p>
+    <p class="st-q">Each AUTHORIZE task (or task with a reasoning coded on it) is one decision. Its review is the human work between the AI’s last answer and the decision; its deliberation runs from the previous decision (or the session start). A decision with two reasons (“OWN_CHECK; LOOKS_RIGHT”) counts once under each reason, so reasons are counted as mentions.</p>
     <div class="st-sub">Reasoning to move forward</div>
     ${legendHTML(reasons.map(n => ({name: n, hex: hexOf(n), known: true})))}
     <div class="bars">${bars}</div>
@@ -1229,7 +1335,7 @@ function decisionHTML(S, D, both){
     ${dots}
     ${timeRows.length ? tbl("Time to decide", ["", "Tight median", "Loose median", "Test", "p", "Effect size"], timeRows) : ""}
     <div class="st-sub">What each reasoning rested on</div>
-    ${tbl("Evidence before each reasoning", ["Reasoning", "Decisions", "Tight / loose", "Median review", "No review", "With GATHER", "With JUDGE", "Re-prompted", "Most common review tasks"], prof)}
+    ${tbl("Evidence before each reasoning", ["Reasoning", "Decisions", "Tight / loose", "Median review", "Paired with", "No review", "With GATHER", "With JUDGE", "Re-prompted", "Most common review tasks"], prof)}
     <details><summary class="st-sub" style="cursor:pointer">Every decision (${D.length})</summary>
     ${tbl("Every decision to move forward", ["Session", "Workflow", "Phase", "Reasoning", "At", "Review", "Deliberation", "Review actions", "Prompts", "Review tasks", "Row"], list)}</details>
   </section>`;
@@ -1253,17 +1359,51 @@ function processHTML(S, both){
   </section>`;
 }
 
-function methodsHTML(){
+/* Section: comparing sessions to each other */
+function similarityHTML(S, both){
+  const lv = state.st.sim, om = state.st.dist === "om", n = S.length;
+  const labels = S.map(s => s.cond);
+  // Profiles: each session's counts of each code (human tasks or actions)
+  const U = S.map(s => humanUnits(s.f, lv)), cats = catsPresent(lv, U.flat().map(u => u.name));
+  const vec = U.map(us => cats.map(c => us.filter(u => u.name === c).length));
+  const cos = S.map((_, i) => S.map((_, j) => cosine(vec[i], vec[j])));
+  // Sequences: the whole session in order, human and AI
+  const seqs = S.map(s => codeSeq(s.f, lv)), sub = om ? trateCosts(seqs) : () => 1;
+  const memoKey = "seq" + JSON.stringify([seqs, om]);
+  const dist = memo.get(memoKey) || S.map((_, i) => S.map((_, j) => i === j ? 0 : null));
+  if (!memo.has(memoKey)){ for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) dist[i][j] = dist[j][i] = seqDistance(seqs[i], seqs[j], sub); memo.set(memoKey, dist); }
+
+  const short = (s, i) => `${i + 1}`;
+  const grid = (title, M, fmt, shade, tip) => {
+    statTables.push({title, head: ["", ...S.map(s => s.f.name)], rows: S.map((s, i) => [s.f.name, ...M[i].map(v => v == null ? "" : fmtN(v, 3))])});
+    const edge = (i) => i > 0 && labels[i] !== labels[i - 1];
+    return `<div class="tw"><table class="heat sim"><caption>${esc(title)}</caption><thead><tr><th></th>${S.map((s, j) =>
+      `<th scope="col" class="${edge(j) ? "cut" : ""}" title="${esc(s.f.name)}"><span class="cdot" style="background:${condVar(s.cond)}"></span>${short(s, j)}</th>`).join("")}</tr></thead><tbody>${
+      S.map((s, i) => `<tr class="${edge(i) ? "cut" : ""}"><th scope="row"><span class="nm"><span class="cdot" style="background:${condVar(s.cond)}"></span>${i + 1} · ${esc(s.f.name)}</span></th>${S.map((t, j) => { const v = M[i][j], k2 = v == null ? 0 : shade(v);
+        return `<td ${tipAttrs(`${s.f.name} × ${t.f.name}`, "", [tip(v), `${condName(s.cond)} × ${condName(t.cond)}`], edge(j) ? "cut" : "")} style="${v == null ? "" : `background:color-mix(in srgb, var(--accent) ${Math.round(8 + k2 * 92)}%, var(--sheet));color:${k2 > .5 ? "var(--accent-ink)" : "var(--ink)"}`}">${v == null ? "–" : fmt(v)}</td>`; }).join("")}</tr>`).join("")
+    }</tbody></table></div>`;
+  };
+  const cosGrid = grid(`Profile similarity (cosine, ${lvName(lv)})`, cos, v => fmtN(v), v => v, v => v == null ? "No codes to compare" : `Cosine similarity ${fmtN(v, 3)}`);
+  const seqGrid = grid(`Sequence distance (${om ? "optimal matching" : "edit distance"}, ${lvName(lv)})`, dist, v => fmtN(v), v => 1 - v,
+    v => `${om ? "Optimal matching" : "Edit"} distance ${fmtN(v, 3)} (0 = same order of codes, 1 = nothing shared)`);
+
+  // Within vs between workflows, on profile dissimilarity (1 − cosine) and sequence distance
+  let tests = "";
+  if (both){
+    const dis = cos.map(r => r.map(v => v == null ? null : 1 - v));
+    const res = [["Profile dissimilarity (1 − cosine)", withinBetween(dis, labels)], [`Sequence distance (${om ? "optimal matching" : "edit"})`, withinBetween(dist, labels)]];
+    const rows = res.map(([label, r]) => r ? [label, fmtN(r.byGroup.tight, 3), fmtN(r.byGroup.loose, 3), fmtN(r.within, 3), fmtN(r.between, 3), `${r.diff >= 0 ? "+" : ""}${fmtN(r.diff, 3)}`,
+      {h: fmtP(r.p).replace("p = ", ""), t: fmtN(r.p, 3), c: r.p < .05 ? "sig" : ""}, `${r.perms.toLocaleString()}${r.exact ? " (all)" : ""}`] : [label, "–", "–", "–", "–", "–", "–", "Needs 2+ sessions in a workflow"]);
+    const seqRes = res[1][1];
+    tests = seqRes ? `<p class="result ${seqRes.p < .05 ? "" : "weak"}">${seqRes.diff > 0 ? "Sessions are closer to others in their own workflow" : "Sessions are not closer to their own workflow"} in the order of what they did: mean distance ${fmtN(seqRes.within)} within vs. ${fmtN(seqRes.between)} between workflows, ${fmtP(seqRes.p)} (${seqRes.exact ? `all ${seqRes.perms.toLocaleString()} ways` : `${seqRes.perms.toLocaleString()} random ways`} of relabeling the sessions; the smallest possible p here is ${fmtN(seqRes.minP, 3)}).</p>` : `<p class="result weak">Load at least two sessions of one workflow to compare distances within and between workflows.</p>`;
+    tests += tbl("Within vs. between workflows", ["Measure", "Within tight", "Within loose", "Within (all)", "Between", "Between − within", "p (one-sided)", "Relabelings"], rows);
+  }
   return `<section class="st-sec">
-    <div class="st-head"><div><span class="num">Notes</span><h3>How these are worked out</h3></div></div>
-    <ul class="methods">
-      <li><b>Times</b> are minutes.seconds (24.05 is 24:05; 25.1 is 25:10). Each row lasts until the next row with a time. A time earlier than the row before it is flagged on the left and left out.</li>
-      <li><b>Decision to move forward</b>: an AUTHORIZE task, or any task with a Reasoning to Move Forward. <b>Review</b>: human tasks after the AI’s last turn (or the previous decision, if later). <b>Review time</b>: from the AI’s last output (its AI_OUTPUT row) to the decision. AI_WORKING and AI_OUTPUT rows in one AI column count as one AI turn. <b>Deliberation</b>: from the previous decision (or session start) to this one.</li>
-      <li><b>χ² tests</b> (task mix, paths, reasonings) give a permutation p-value from 4,000 shuffles of the tight/loose labels, which holds up with small counts; the usual χ² approximation is shown where it differs. <b>Cramér’s V</b>: about .1 small, .3 medium, .5 large. <b>Adjusted residuals</b> beyond ±1.96 mark the categories driving a difference.</li>
-      <li><b>Mann–Whitney U</b> compares two groups without assuming normal data; p is exact when there are few enough values. <b>Rank-biserial r</b> runs from −1 to 1; positive means tight tends higher. <b>Kruskal–Wallis H</b> compares several groups (here, reasonings); ε² is its effect size.</li>
-      <li><b>Fisher’s exact test</b> compares two proportions with small counts. An odds ratio above 1 means the behavior is more likely in tight sessions.</li>
-      <li><b>Units</b>: tests on tasks, transitions or decisions treat each as independent, though several come from one person; the session-by-session table counts each person once and is the safer basis for claims.</li>
-    </ul>
+    <div class="st-head"><div><span class="num">5 · Similarity</span><h3>Comparing workflows to each other</h3></div>
+      <div class="st-ctl">${stCtl("sim", LEVEL_OPTS)}${stCtl("dist", [["lev", "Edit distance"], ["om", "Optimal matching"]])}</div></div>
+    <p class="st-q">How alike are the sessions? <b>Profile similarity</b> compares each session’s mix of human ${isTaskLevel(lv) ? "tasks" : "actions"} (cosine of their count vectors, 1 = the same mix). <b>Sequence distance</b> compares the order of everything that happened, human and AI, which a mix can’t show: ${om ? "optimal matching, where swapping two codes costs less the more often they follow each other" : "edit (Levenshtein) distance, the fewest insertions, deletions and swaps"}, divided by the longer session (0 = same order, 1 = nothing shared). Sessions are numbered tight first; darker cells are more alike, and a line separates the workflows.</p>
+    <div class="heats">${cosGrid}${seqGrid}</div>
+    ${tests}
   </section>`;
 }
 
@@ -1287,7 +1427,7 @@ function eventsCSV(files){
       const items = e.kind === "handoff" ? [e] : e.actions;
       items.forEach(a => lines.push([f.name, f.category, a.row, e.step >= 0 ? f.stepLabels[e.step] : "", a.t != null ? clock(a.t) : "", a.t ?? "", a.dur ?? "", e.kind,
         e.kind === "handoff" || e.orphan ? "" : taskNo, a.action ? a.action.name : "", a.actFam ? a.actFam.name : "", e.task ? e.task.name : "", e.taskFam ? e.taskFam.name : "",
-        e.hand ? e.hand.name : "", a.reason ? a.reason.name : "", decOf.get(e) ?? "", reviewOf.get(e) ?? ""].map(csvCell).join(",")));
+        e.hand ? e.hand.name : "", (a.reasons || []).map(r => r.name).join("; "), decOf.get(e) ?? "", reviewOf.get(e) ?? ""].map(csvCell).join(",")));
     });
   });
   return lines.join("\r\n") + "\r\n";
@@ -1336,7 +1476,7 @@ function tabCSV(tab){
   const legend = legendOf(tab.files);
   const lines = grid.map(r => r.map(csvCell).join(","));
   lines.push("", "Legend,Hex", ...legend.map(x => `${csvCell(x.name)},${x.hex}`));
-  if (tab.level !== "all" && tab.files.some(f => f.columns.some(c => c.cells.some(x => x && x.reason))))
+  if (tab.level !== "all" && tab.files.some(f => f.columns.some(c => c.cells.some(x => x && x.reasons && x.reasons.length))))
     lines.push("", "Reasoning to move forward is shown as a dot on the PNG; see the -all-levels files for it as a column.");
   return lines.join("\r\n") + "\r\n";
 }
@@ -1430,10 +1570,10 @@ function tabPNG(tab){
         const cell = col.cells[r]; if (!cell) return;
         const cx = bx + i * P.col + (P.col - P.sq)/2, cy = y + P.head + r * P.row + (P.row - P.sq)/2;
         swatch(c, cx, cy, P.sq, cell, col.sub ? P.sq + ((cell.rows || 1) - 1) * P.row : P.sq);
-        if (cell.reason && f.level !== "all"){
-          c.beginPath(); c.arc(cx + P.sq, cy, 5, 0, 2 * Math.PI); c.fillStyle = cell.reason.hex; c.fill();
+        if (f.level !== "all") (cell.reasons || []).forEach((rz, ri) => {
+          c.beginPath(); c.arc(cx + P.sq - ri * 9, cy, 5, 0, 2 * Math.PI); c.fillStyle = rz.hex; c.fill();
           c.strokeStyle = "#ffffff"; c.lineWidth = 1.5; c.stroke();
-        }
+        });
       });
     }
     // grid lines
